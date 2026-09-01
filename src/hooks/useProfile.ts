@@ -27,18 +27,6 @@ const DEFAULT_BIO = "Full-Stack Developer · Building things that matter";
 const DEFAULT_COVER_POS: CoverPosition = { x: 50, y: 50, scale: 1 };
 const DEFAULT_SKILLS = ["TypeScript", "React", "Next.js", "Node.js", "PostgreSQL", "Docker"];
 
-// Cover and avatar are base64 data URLs — kept in localStorage to avoid large DB payloads
-function loadLocal(key: string): string | null {
-  if (typeof window === "undefined") return null;
-  try { return localStorage.getItem(key); } catch { return null; }
-}
-function saveLocal(key: string, value: string | null): void {
-  try {
-    if (value === null) localStorage.removeItem(key);
-    else localStorage.setItem(key, value);
-  } catch { /* quota */ }
-}
-
 async function apiFetch(init?: RequestInit) {
   const res = await fetch("/api/profile", {
     ...init,
@@ -46,6 +34,22 @@ async function apiFetch(init?: RequestInit) {
   });
   if (!res.ok) throw new Error(`Profile API → ${res.status}`);
   return res.json();
+}
+
+async function uploadImage(dataUrl: string, type: "cover" | "avatar"): Promise<string> {
+  const res = await fetch(dataUrl);
+  const blob = await res.blob();
+  const ext = blob.type.split("/")[1] ?? "jpg";
+  const file = new File([blob], `${type}.${ext}`, { type: blob.type });
+
+  const form = new FormData();
+  form.append("file", file);
+  form.append("type", type);
+
+  const uploadRes = await fetch("/api/upload", { method: "POST", body: form });
+  if (!uploadRes.ok) throw new Error("Upload failed");
+  const { url } = await uploadRes.json();
+  return url as string;
 }
 
 export function useProfile() {
@@ -60,17 +64,16 @@ export function useProfile() {
   const [hydrated, setHydrated] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Debounced save to API (skips cover/avatar — those stay local only)
-  const persistToApi = useCallback((data: ProfileData) => {
+  const persistToApi = useCallback((data: ProfileData & { coverUrl?: string | null; avatarUrl?: string | null }) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       apiFetch({
         method: "PUT",
         body: JSON.stringify({
           bio: data.bio,
-          coverUrl: null,         // not stored in DB
+          coverUrl: data.coverUrl,
           coverPosition: JSON.stringify(data.coverPosition),
-          avatarUrl: null,        // not stored in DB
+          avatarUrl: data.avatarUrl,
           links: data.links,
           skills: data.skills,
         }),
@@ -83,53 +86,82 @@ export function useProfile() {
       .then((row: Record<string, unknown>) => {
         setProfile({
           bio: (row.bio as string) ?? DEFAULT_BIO,
-          cover: loadLocal("profile-cover"),
+          cover: (row.coverUrl as string) ?? null,
           coverPosition: row.coverPosition
             ? (JSON.parse(row.coverPosition as string) as CoverPosition)
             : DEFAULT_COVER_POS,
-          avatar: loadLocal("profile-avatar"),
+          avatar: (row.avatarUrl as string) ?? null,
           links: (row.links as ProfileLinks) ?? {},
           skills: (row.skills as string[]) ?? DEFAULT_SKILLS,
         });
       })
       .catch(() => {
-        // Fallback to localStorage if API fails
         setProfile({
-          bio: loadLocal("profile-bio") ?? DEFAULT_BIO,
-          cover: loadLocal("profile-cover"),
-          coverPosition: (() => { try { return JSON.parse(loadLocal("profile-cover-position") ?? "{}"); } catch { return DEFAULT_COVER_POS; } })(),
-          avatar: loadLocal("profile-avatar"),
-          links: (() => { try { return JSON.parse(loadLocal("profile-links") ?? "{}"); } catch { return {}; } })(),
-          skills: (() => { try { return JSON.parse(loadLocal("profile-skills") ?? "null") ?? DEFAULT_SKILLS; } catch { return DEFAULT_SKILLS; } })(),
+          bio: DEFAULT_BIO,
+          cover: null,
+          coverPosition: DEFAULT_COVER_POS,
+          avatar: null,
+          links: {},
+          skills: DEFAULT_SKILLS,
         });
       })
       .finally(() => setHydrated(true));
   }, []);
 
   const setBio = useCallback((bio: string) => {
-    setProfile((p) => { const next = { ...p, bio }; persistToApi(next); return next; });
+    setProfile((p) => { const next = { ...p, bio }; persistToApi({ ...next, coverUrl: p.cover, avatarUrl: p.avatar }); return next; });
   }, [persistToApi]);
 
-  const setCover = useCallback((dataUrl: string | null) => {
-    saveLocal("profile-cover", dataUrl);
+  const setCover = useCallback(async (dataUrl: string | null) => {
     setProfile((p) => ({ ...p, cover: dataUrl }));
-  }, []);
+    if (dataUrl && dataUrl.startsWith("data:")) {
+      try {
+        const url = await uploadImage(dataUrl, "cover");
+        setProfile((p) => {
+          const next = { ...p, cover: url };
+          persistToApi({ ...next, coverUrl: url, avatarUrl: p.avatar });
+          return next;
+        });
+      } catch {
+        // keep local preview even if upload fails
+      }
+    } else {
+      setProfile((p) => { persistToApi({ ...p, coverUrl: dataUrl, avatarUrl: p.avatar }); return p; });
+    }
+  }, [persistToApi]);
 
   const setCoverPosition = useCallback((pos: CoverPosition) => {
-    setProfile((p) => { const next = { ...p, coverPosition: pos }; persistToApi(next); return next; });
+    setProfile((p) => {
+      const next = { ...p, coverPosition: pos };
+      persistToApi({ ...next, coverUrl: p.cover, avatarUrl: p.avatar });
+      return next;
+    });
   }, [persistToApi]);
 
-  const setAvatar = useCallback((dataUrl: string | null) => {
-    saveLocal("profile-avatar", dataUrl);
+  const setAvatar = useCallback(async (dataUrl: string | null) => {
     setProfile((p) => ({ ...p, avatar: dataUrl }));
-  }, []);
+    if (dataUrl && dataUrl.startsWith("data:")) {
+      try {
+        const url = await uploadImage(dataUrl, "avatar");
+        setProfile((p) => {
+          const next = { ...p, avatar: url };
+          persistToApi({ ...next, coverUrl: p.cover, avatarUrl: url });
+          return next;
+        });
+      } catch {
+        // keep local preview even if upload fails
+      }
+    } else {
+      setProfile((p) => { persistToApi({ ...p, coverUrl: p.cover, avatarUrl: dataUrl }); return p; });
+    }
+  }, [persistToApi]);
 
   const setLinks = useCallback((links: ProfileLinks) => {
-    setProfile((p) => { const next = { ...p, links }; persistToApi(next); return next; });
+    setProfile((p) => { const next = { ...p, links }; persistToApi({ ...next, coverUrl: p.cover, avatarUrl: p.avatar }); return next; });
   }, [persistToApi]);
 
   const setSkills = useCallback((skills: string[]) => {
-    setProfile((p) => { const next = { ...p, skills }; persistToApi(next); return next; });
+    setProfile((p) => { const next = { ...p, skills }; persistToApi({ ...next, coverUrl: p.cover, avatarUrl: p.avatar }); return next; });
   }, [persistToApi]);
 
   return { profile, hydrated, setBio, setCover, setCoverPosition, setAvatar, setLinks, setSkills };
