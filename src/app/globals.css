@@ -1,0 +1,165 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Design tokens ─────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --bg:      #eeeaff;
+  --surface: #f8f5ff;
+  --card:    #ffffff;
+
+  /* Text */
+  --text:    #0d0b1e;
+  --muted:   #5b5880;
+  --subtle:  #9693b8;
+
+  /* Accents — vivid on light */
+  --violet:  #7c3aed;
+  --cyan:    #0ea5e9;
+  --pink:    #db2777;
+  --green:   #059669;
+  --amber:   #d97706;
+  --red:     #dc2626;
+
+  /* Borders */
+  --border:  rgba(124,58,237,0.13);
+  --border-hover: rgba(124,58,237,0.35);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0; padding: 0;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: 'Outfit', system-ui, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6,
+.font-display {
+  font-family: 'Syne', system-ui, sans-serif;
+}
+
+/* ─── Futuristic grid overlay ──────────────────────────────────────────────── */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  /* Very light tint — lets the bg image show clearly */
+  background-image:
+    linear-gradient(rgba(10,8,28,0.22) 0%, rgba(10,8,28,0.22) 100%),
+    linear-gradient(rgba(124,58,237,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124,58,237,0.06) 1px, transparent 1px);
+  background-size: 100% 100%, 48px 48px, 48px 48px;
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.25); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(124,58,237,0.5); }
+
+.scrollbar-none { scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* ─── Gradient utilities ────────────────────────────────────────────────────── */
+.grad-accent {
+  background: linear-gradient(135deg, #7c3aed, #db2777, #0ea5e9);
+}
+
+.grad-accent-text {
+  background: linear-gradient(135deg, #7c3aed 0%, #db2777 50%, #0ea5e9 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Gradient button ──────────────────────────────────────────────────────── */
+.btn-gradient {
+  background: linear-gradient(135deg, #7c3aed 0%, #db2777 60%, #0ea5e9 100%);
+  background-size: 200% 200%;
+  transition: background-position 0.4s ease, transform 0.2s ease, box-shadow 0.3s ease;
+}
+.btn-gradient:hover {
+  background-position: 100% 0;
+  box-shadow: 0 4px 24px rgba(124,58,237,0.45), 0 2px 8px rgba(219,39,119,0.25);
+  transform: translateY(-1px);
+}
+
+/* ─── Tag chips ─────────────────────────────────────────────────────────────── */
+.tag-cyan    { background: rgba(14,165,233,0.1);  color: #0369a1; border-color: rgba(14,165,233,0.3); }
+.tag-blue    { background: rgba(99,102,241,0.1);  color: #4338ca; border-color: rgba(99,102,241,0.3); }
+.tag-violet  { background: rgba(124,58,237,0.1);  color: #6d28d9; border-color: rgba(124,58,237,0.3); }
+.tag-emerald { background: rgba(5,150,105,0.1);   color: #065f46; border-color: rgba(5,150,105,0.3); }
+.tag-yellow  { background: rgba(217,119,6,0.1);   color: #92400e; border-color: rgba(217,119,6,0.3); }
+.tag-rose    { background: rgba(219,39,119,0.1);  color: #9d174d; border-color: rgba(219,39,119,0.3); }
+.tag-orange  { background: rgba(234,88,12,0.1);   color: #9a3412; border-color: rgba(234,88,12,0.3); }
+.tag-slate   { background: rgba(100,116,139,0.08); color: #334155; border-color: rgba(100,116,139,0.2); }
+
+/* ─── Status animations ─────────────────────────────────────────────────────── */
+.status-glow-live        { animation: glowPulseLive 2.2s ease-in-out infinite; }
+.status-glow-maintenance { animation: glowPulseMaint 2.2s ease-in-out infinite; }
+.status-glow-deprecated  { animation: glowPulseDepr 2.2s ease-in-out infinite; }
+
+@keyframes glowPulseLive {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(5,150,105,0.15); }
+  50%       { box-shadow: 0 0 0 4px rgba(5,150,105,0.35); }
+}
+@keyframes glowPulseMaint {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(217,119,6,0.15); }
+  50%       { box-shadow: 0 0 0 4px rgba(217,119,6,0.35); }
+}
+@keyframes glowPulseDepr {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(220,38,38,0.15); }
+  50%       { box-shadow: 0 0 0 4px rgba(220,38,38,0.35); }
+}
+
+/* ─── Skeleton shimmer ──────────────────────────────────────────────────────── */
+@keyframes skeletonShimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, #ede9f8 25%, #ddd6f5 50%, #ede9f8 75%);
+  background-size: 800px 100%;
+  animation: skeletonShimmer 1.6s ease-in-out infinite;
+}
+
+/* ─── Cover shimmer ─────────────────────────────────────────────────────────── */
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.cover-shimmer {
+  background: linear-gradient(135deg, #7c3aed, #db2777, #0ea5e9, #059669, #d97706, #7c3aed);
+  background-size: 400% 400%;
+  animation: gradientShift 8s ease infinite;
+}
+
+/* ─── Card entrance ─────────────────────────────────────────────────────────── */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.card-enter {
+  animation: fadeSlideUp 0.45s cubic-bezier(0.16,1,0.3,1) forwards;
+  opacity: 0;
+}
+
+/* ─── Toast animations ──────────────────────────────────────────────────────── */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateX(-50%) translateY(-12px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}

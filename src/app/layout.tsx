@@ -1,0 +1,36 @@
+import type { Metadata, Viewport } from "next";
+import "./globals.css";
+import SwRegister from "./sw-register";
+
+export const metadata: Metadata = {
+  title: "ProjectLocker",
+  description: "Your private vault for tracking and managing deployed projects.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "ProjectLocker",
+  },
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: "#7c3aed",
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body className="antialiased">
+        {children}
+        <SwRegister />
+      </body>
+    </html>
+  );
+}
