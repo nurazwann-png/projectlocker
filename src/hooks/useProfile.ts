@@ -36,21 +36,6 @@ async function apiFetch(init?: RequestInit) {
   return res.json();
 }
 
-async function uploadImage(dataUrl: string, type: "cover" | "avatar"): Promise<string> {
-  const res = await fetch(dataUrl);
-  const blob = await res.blob();
-  const ext = blob.type.split("/")[1] ?? "jpg";
-  const file = new File([blob], `${type}.${ext}`, { type: blob.type });
-
-  const form = new FormData();
-  form.append("file", file);
-  form.append("type", type);
-
-  const uploadRes = await fetch("/api/upload", { method: "POST", body: form });
-  if (!uploadRes.ok) throw new Error("Upload failed");
-  const { url } = await uploadRes.json();
-  return url as string;
-}
 
 export function useProfile() {
   const [profile, setProfile] = useState<ProfileData>({
@@ -112,22 +97,12 @@ export function useProfile() {
     setProfile((p) => { const next = { ...p, bio }; persistToApi({ ...next, coverUrl: p.cover, avatarUrl: p.avatar }); return next; });
   }, [persistToApi]);
 
-  const setCover = useCallback(async (dataUrl: string | null) => {
-    setProfile((p) => ({ ...p, cover: dataUrl }));
-    if (dataUrl && dataUrl.startsWith("data:")) {
-      try {
-        const url = await uploadImage(dataUrl, "cover");
-        setProfile((p) => {
-          const next = { ...p, cover: url };
-          persistToApi({ ...next, coverUrl: url, avatarUrl: p.avatar });
-          return next;
-        });
-      } catch {
-        // keep local preview even if upload fails
-      }
-    } else {
-      setProfile((p) => { persistToApi({ ...p, coverUrl: dataUrl, avatarUrl: p.avatar }); return p; });
-    }
+  const setCover = useCallback((url: string | null) => {
+    setProfile((p) => {
+      const next = { ...p, cover: url };
+      persistToApi({ ...next, coverUrl: url, avatarUrl: p.avatar });
+      return next;
+    });
   }, [persistToApi]);
 
   const setCoverPosition = useCallback((pos: CoverPosition) => {
@@ -138,22 +113,12 @@ export function useProfile() {
     });
   }, [persistToApi]);
 
-  const setAvatar = useCallback(async (dataUrl: string | null) => {
-    setProfile((p) => ({ ...p, avatar: dataUrl }));
-    if (dataUrl && dataUrl.startsWith("data:")) {
-      try {
-        const url = await uploadImage(dataUrl, "avatar");
-        setProfile((p) => {
-          const next = { ...p, avatar: url };
-          persistToApi({ ...next, coverUrl: p.cover, avatarUrl: url });
-          return next;
-        });
-      } catch {
-        // keep local preview even if upload fails
-      }
-    } else {
-      setProfile((p) => { persistToApi({ ...p, coverUrl: p.cover, avatarUrl: dataUrl }); return p; });
-    }
+  const setAvatar = useCallback((url: string | null) => {
+    setProfile((p) => {
+      const next = { ...p, avatar: url };
+      persistToApi({ ...next, coverUrl: p.cover, avatarUrl: url });
+      return next;
+    });
   }, [persistToApi]);
 
   const setLinks = useCallback((links: ProfileLinks) => {

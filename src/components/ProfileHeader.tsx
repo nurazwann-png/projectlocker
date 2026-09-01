@@ -61,13 +61,33 @@ function StatChip({ label, count, color }: { label: string; count: number; color
   );
 }
 
-function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+async function compressAndUpload(file: File, type: "cover" | "avatar"): Promise<string> {
+  const maxW = type === "cover" ? 1920 : 600;
+  const maxH = type === "cover" ? 1080 : 600;
+  const quality = 0.82;
+
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, maxW / bitmap.width, maxH / bitmap.height);
+  const w = Math.round(bitmap.width * scale);
+  const h = Math.round(bitmap.height * scale);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d")!;
+  ctx.drawImage(bitmap, 0, 0, w, h);
+  bitmap.close();
+
+  const blob: Blob = await new Promise((res) => canvas.toBlob((b) => res(b!), "image/jpeg", quality));
+  const compressed = new File([blob], `${type}.jpg`, { type: "image/jpeg" });
+
+  const form = new FormData();
+  form.append("file", compressed);
+  form.append("type", type);
+  const res = await fetch("/api/upload", { method: "POST", body: form });
+  if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
+  const { url } = await res.json();
+  return url as string;
 }
 
 // ── Cover Editor ──────────────────────────────────────────────────────────────
@@ -250,6 +270,8 @@ export default function ProfileHeader({
   const [skillInput, setSkillInput] = useState("");
   const typedBio = useTypewriter(profile.bio, 18);
   const [editingCover, setEditingCover] = useState(false);
+  const [coverUploading, setCoverUploading] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   const total = projects.length;
   const live = projects.filter((p) => p.status === "Live").length;
@@ -258,20 +280,34 @@ export default function ProfileHeader({
 
   async function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file) return;
-    const dataUrl = await readFileAsDataUrl(file);
-    onCoverChange(dataUrl);
-    onCoverPositionChange({ x: 50, y: 50, scale: 1 });
-    setEditingCover(true);
     e.target.value = "";
+    if (!file) return;
+    setCoverUploading(true);
+    try {
+      const url = await compressAndUpload(file, "cover");
+      onCoverChange(url);
+      onCoverPositionChange({ x: 50, y: 50, scale: 1 });
+      setEditingCover(true);
+    } catch {
+      alert("Failed to upload cover photo. Please try again.");
+    } finally {
+      setCoverUploading(false);
+    }
   }
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file) return;
-    const dataUrl = await readFileAsDataUrl(file);
-    onAvatarChange(dataUrl);
     e.target.value = "";
+    if (!file) return;
+    setAvatarUploading(true);
+    try {
+      const url = await compressAndUpload(file, "avatar");
+      onAvatarChange(url);
+    } catch {
+      alert("Failed to upload profile photo. Please try again.");
+    } finally {
+      setAvatarUploading(false);
+    }
   }
 
   function saveBio() {
@@ -469,14 +505,22 @@ export default function ProfileHeader({
           style={{ background: "rgba(14,11,30,0.4)" }}
         >
           <button
-            onClick={() => coverInputRef.current?.click()}
+            onClick={() => !coverUploading && coverInputRef.current?.click()}
+            disabled={coverUploading}
             className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-white transition-colors hover:brightness-110"
-            style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.2)" }}
+            style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.2)", opacity: coverUploading ? 0.7 : 1 }}
           >
-            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M1 8a2 2 0 0 1 2-2h.93a2 2 0 0 0 1.664-.89l.812-1.22A2 2 0 0 1 8.07 3h3.86a2 2 0 0 1 1.664.89l.812 1.22A2 2 0 0 0 16.07 6H17a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8Zm13.5 3a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM10 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
-            </svg>
-            Change Photo
+            {coverUploading ? (
+              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+              </svg>
+            ) : (
+              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M1 8a2 2 0 0 1 2-2h.93a2 2 0 0 0 1.664-.89l.812-1.22A2 2 0 0 1 8.07 3h3.86a2 2 0 0 1 1.664.89l.812 1.22A2 2 0 0 0 16.07 6H17a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8Zm13.5 3a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM10 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
+              </svg>
+            )}
+            {coverUploading ? "Uploading…" : "Change Photo"}
           </button>
 
           {profile.cover && (
@@ -514,7 +558,7 @@ export default function ProfileHeader({
         <div
           className="relative w-20 h-20 sm:w-24 sm:h-24 cursor-pointer group/avatar"
           style={{ marginTop: "-40px", zIndex: 20 }}
-          onClick={() => avatarInputRef.current?.click()}
+          onClick={() => !avatarUploading && avatarInputRef.current?.click()}
           title="Click to change avatar"
         >
           <div
@@ -535,9 +579,16 @@ export default function ProfileHeader({
             className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-all duration-200"
             style={{ background: "rgba(14,11,30,0.5)" }}
           >
-            <svg className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M1 8a2 2 0 0 1 2-2h.93a2 2 0 0 0 1.664-.89l.812-1.22A2 2 0 0 1 8.07 3h3.86a2 2 0 0 1 1.664.89l.812 1.22A2 2 0 0 0 16.07 6H17a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8Zm13.5 3a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM10 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
-            </svg>
+            {avatarUploading ? (
+              <svg className="h-5 w-5 text-white animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+              </svg>
+            ) : (
+              <svg className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M1 8a2 2 0 0 1 2-2h.93a2 2 0 0 0 1.664-.89l.812-1.22A2 2 0 0 1 8.07 3h3.86a2 2 0 0 1 1.664.89l.812 1.22A2 2 0 0 0 16.07 6H17a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8Zm13.5 3a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM10 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
+              </svg>
+            )}
           </div>
           <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
         </div>
