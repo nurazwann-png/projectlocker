@@ -13,10 +13,11 @@ export async function POST(req: Request) {
   if (!file || !type) return NextResponse.json({ error: "Missing file or type" }, { status: 400 });
 
   const ext = file.name.split(".").pop() ?? "jpg";
-  const blob = await put(`${userId}/${type}.${ext}`, file, {
-    access: "public",
-    allowedContentTypes: ["image/jpeg", "image/png", "image/webp", "image/gif"],
-  });
+  if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type)) {
+    return NextResponse.json({ error: "Invalid file type" }, { status: 400 });
+  }
+
+  const blob = await put(`${userId}/${type}.${ext}`, file, { access: "public" });
 
   return NextResponse.json({ url: blob.url });
 }
