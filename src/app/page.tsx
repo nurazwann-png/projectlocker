@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { UserButton } from "@clerk/nextjs";
 import type { Project, ProjectFormData, ProjectStatus } from "@/types/project";
 import { useProjects } from "@/hooks/useProjects";
 import { useProfile } from "@/hooks/useProfile";
@@ -179,6 +180,11 @@ export default function DashboardPage() {
       backgroundAttachment: "fixed",
       backgroundColor: "#eeeaff",
     }}>
+
+      {/* Auth button */}
+      <div className="fixed top-4 right-4 z-50" style={{ filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.4))" }}>
+        <UserButton afterSignOutUrl="/sign-in" />
+      </div>
 
       {/* Profile Header */}
       {profileHydrated && (
