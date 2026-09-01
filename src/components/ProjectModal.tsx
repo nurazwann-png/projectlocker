@@ -42,13 +42,29 @@ export default function ProjectModal({ isOpen, project, onClose, onSave }: Proje
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
   const isEditing = Boolean(project);
 
-  const handleThumbnailUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const [thumbnailUploading, setThumbnailUploading] = useState(false);
+
+  const handleThumbnailUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => set("thumbnail", reader.result as string);
-    reader.readAsDataURL(file);
     e.target.value = "";
+    if (!file) return;
+    setThumbnailUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("type", "cover");
+      const res = await fetch("/api/upload", { method: "POST", body: form });
+      if (!res.ok) throw new Error("Upload failed");
+      const { url } = await res.json();
+      set("thumbnail", url as string);
+    } catch {
+      // fall back to base64 so the user at least sees something
+      const reader = new FileReader();
+      reader.onload = () => set("thumbnail", reader.result as string);
+      reader.readAsDataURL(file);
+    } finally {
+      setThumbnailUploading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -310,15 +326,23 @@ export default function ProjectModal({ isOpen, project, onClose, onSave }: Proje
                   <button
                     type="button"
                     onClick={() => thumbnailInputRef.current?.click()}
+                    disabled={thumbnailUploading}
                     className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
-                    style={{ background: "rgba(124,58,237,0.08)", color: "#7c3aed", border: "1px solid rgba(124,58,237,0.25)" }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(124,58,237,0.15)"; }}
+                    style={{ background: "rgba(124,58,237,0.08)", color: "#7c3aed", border: "1px solid rgba(124,58,237,0.25)", opacity: thumbnailUploading ? 0.6 : 1 }}
+                    onMouseEnter={(e) => { if (!thumbnailUploading) (e.currentTarget as HTMLButtonElement).style.background = "rgba(124,58,237,0.15)"; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(124,58,237,0.08)"; }}
                   >
-                    <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M1 8a2 2 0 0 1 2-2h.93a2 2 0 0 0 1.664-.89l.812-1.22A2 2 0 0 1 8.07 3h3.86a2 2 0 0 1 1.664.89l.812 1.22A2 2 0 0 0 16.07 6H17a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8Zm13.5 3a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM10 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
-                    </svg>
-                    {form.thumbnail ? "Change Image" : "Upload Screenshot"}
+                    {thumbnailUploading ? (
+                      <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                      </svg>
+                    ) : (
+                      <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M1 8a2 2 0 0 1 2-2h.93a2 2 0 0 0 1.664-.89l.812-1.22A2 2 0 0 1 8.07 3h3.86a2 2 0 0 1 1.664.89l.812 1.22A2 2 0 0 0 16.07 6H17a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8Zm13.5 3a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM10 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                    {thumbnailUploading ? "Uploading…" : form.thumbnail ? "Change Image" : "Upload Screenshot"}
                   </button>
                   {form.thumbnail && (
                     <button

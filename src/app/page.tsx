@@ -478,6 +478,10 @@ export default function DashboardPage() {
                     onDuplicate={duplicateProject}
                     onCardClick={bulkMode ? (p) => toggleSelected(p.id) : setDetailProject}
                     onPin={togglePin}
+                    onThumbnailChange={(id, url) => {
+                      const p = projects.find((x) => x.id === id);
+                      if (p) updateProject(id, { ...p, thumbnail: url, name: p.name });
+                    }}
                     index={i}
                   />
                 </div>

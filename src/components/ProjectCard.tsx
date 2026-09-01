@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useState } from "react";
 import type { Project } from "@/types/project";
 import StatusBadge from "./StatusBadge";
 
@@ -12,6 +13,7 @@ interface ProjectCardProps {
   onDuplicate?: (project: Project) => void;
   onCardClick?: (project: Project) => void;
   onPin?: (id: string) => void;
+  onThumbnailChange?: (id: string, url: string | null) => void;
   index?: number;
 }
 
@@ -76,8 +78,18 @@ function tagClass(tag: string): string {
   return ["tag-cyan","tag-blue","tag-violet","tag-emerald","tag-yellow","tag-rose","tag-orange","tag-slate"][idx];
 }
 
+async function uploadThumbnail(file: File): Promise<string> {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("type", "cover");
+  const res = await fetch("/api/upload", { method: "POST", body: form });
+  if (!res.ok) throw new Error("Upload failed");
+  const { url } = await res.json();
+  return url as string;
+}
+
 export default function ProjectCard({
-  project, onEdit, onDelete, onTagClick, activeTagFilter, onDuplicate, onCardClick, onPin, index = 0,
+  project, onEdit, onDelete, onTagClick, activeTagFilter, onDuplicate, onCardClick, onPin, onThumbnailChange, index = 0,
 }: ProjectCardProps) {
   const grad = projectGradient(project.name);
   const score = healthScore(project);
@@ -87,6 +99,26 @@ export default function ProjectCard({
   const formattedDate = project.deploymentDate
     ? new Date(project.deploymentDate).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
     : "—";
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const hasLiveUrl = Boolean(project.liveUrl && /^https?:\/\//i.test(project.liveUrl));
+  const hasRepoUrl = Boolean(project.repoUrl && /^https?:\/\//i.test(project.repoUrl));
+
+  async function handleThumbnailPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !onThumbnailChange) return;
+    setUploading(true);
+    try {
+      const url = await uploadThumbnail(file);
+      onThumbnailChange(project.id, url);
+    } catch {
+      // silently fail — keep existing thumbnail
+    } finally {
+      setUploading(false);
+    }
+  }
 
   return (
     <div
@@ -111,31 +143,61 @@ export default function ProjectCard({
         (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(124,58,237,0.12)";
       }}
     >
-      {/* Thumbnail area */}
-      <div className="relative flex flex-col justify-between p-6" style={{ background: grad, minHeight: 180 }}>
+      {/* Thumbnail area — fixed 16:9 aspect ratio */}
+      <div
+        className="relative overflow-hidden"
+        style={{ background: grad, aspectRatio: "16/9" }}
+      >
         {project.thumbnail && (
           <img
             src={project.thumbnail}
             alt={`${project.name} preview`}
-            className="absolute inset-0 w-full h-full object-cover"
-            style={{ transition: "transform 0.4s ease" }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLImageElement).style.transform = "scale(1.04)"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).style.transform = "scale(1)"; }}
+            className="absolute inset-0 w-full h-full"
+            style={{
+              objectFit: "cover",
+              objectPosition: "center top",
+              transition: "transform 0.4s ease",
+            }}
           />
         )}
+
+        {/* Gradient overlay */}
         <div
           className="absolute inset-0"
           style={{ background: project.thumbnail
-            ? "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.65) 100%)"
+            ? "linear-gradient(to bottom, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.60) 100%)"
             : "linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.35) 100%)"
           }}
         />
+
+        {/* Photo edit overlay — shows on hover when onThumbnailChange is provided */}
+        {onThumbnailChange && (
+          <button
+            className="absolute inset-0 flex flex-col items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+            style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(2px)", cursor: "pointer", zIndex: 10 }}
+            onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+            title="Change preview image"
+            disabled={uploading}
+          >
+            {uploading ? (
+              <svg className="h-5 w-5 text-white animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+              </svg>
+            ) : (
+              <svg className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M1 8a2 2 0 0 1 2-2h.93a2 2 0 0 0 1.664-.89l.812-1.22A2 2 0 0 1 8.07 3h3.86a2 2 0 0 1 1.664.89l.812 1.22A2 2 0 0 0 16.07 6H17a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8Zm13.5 3a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM10 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd"/>
+              </svg>
+            )}
+            <span className="text-white text-xs font-medium">{uploading ? "Uploading…" : project.thumbnail ? "Change photo" : "Add photo"}</span>
+          </button>
+        )}
 
         {/* Pinned badge */}
         {project.pinned && (
           <div
             className="absolute top-0 left-0 flex items-center gap-1 rounded-br-xl px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest"
-            style={{ background: "rgba(255,255,255,0.2)", color: "#fff", backdropFilter: "blur(4px)", fontFamily: "'Syne', system-ui, sans-serif" }}
+            style={{ background: "rgba(255,255,255,0.2)", color: "#fff", backdropFilter: "blur(4px)", fontFamily: "'Syne', system-ui, sans-serif", zIndex: 20 }}
           >
             <svg className="h-2.5 w-2.5" viewBox="0 0 20 20" fill="currentColor">
               <path d="M10.447 1.053a.75.75 0 0 0-1.394.22L8.08 5H4.75A2.25 2.25 0 0 0 2.5 7.25v.5c0 .414.336.75.75.75h4.5v5.585L5.26 15.98a.75.75 0 1 0 1.06 1.06L8.5 14.86V15a.75.75 0 0 0 1.5 0v-.14l2.18 2.18a.75.75 0 0 0 1.06-1.06l-2.49-2.495V8.5h4.5a.75.75 0 0 0 .75-.75v-.5A2.25 2.25 0 0 0 13.75 5H10.42l-.973-3.947Z" />
@@ -145,7 +207,7 @@ export default function ProjectCard({
         )}
 
         {/* Action buttons */}
-        <div className="relative flex items-start justify-between">
+        <div className="absolute top-0 right-0 left-0 px-4 pt-3 flex items-start justify-between" style={{ zIndex: 20 }}>
           <StatusBadge status={project.status} size="sm" />
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100" style={{ transition: "opacity 0.2s ease" }}>
             {onPin && (
@@ -199,7 +261,7 @@ export default function ProjectCard({
         </div>
 
         {/* Project name + health ring */}
-        <div className="relative mt-2 flex items-end justify-between gap-2">
+        <div className="absolute bottom-0 left-0 right-0 px-4 pb-3 flex items-end justify-between gap-2" style={{ zIndex: 20 }}>
           <h3 className="text-xl font-bold text-white leading-tight drop-shadow-sm" style={{ fontFamily: "'Syne', system-ui, sans-serif" }}>
             {project.name}
           </h3>
@@ -220,6 +282,8 @@ export default function ProjectCard({
             </span>
           </div>
         </div>
+
+        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleThumbnailPick} />
       </div>
 
       {/* Card body */}
@@ -268,7 +332,7 @@ export default function ProjectCard({
             )}
           </div>
           <div className="flex items-center gap-2">
-            {project.liveUrl && /^https?:\/\//i.test(project.liveUrl) && (
+            {hasLiveUrl ? (
               <a
                 href={project.liveUrl} target="_blank" rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
@@ -280,8 +344,22 @@ export default function ProjectCard({
                 </svg>
                 Live
               </a>
-            )}
-            {project.repoUrl && /^https?:\/\//i.test(project.repoUrl) && (
+            ) : project.status === "Live" ? (
+              <button
+                onClick={(e) => { e.stopPropagation(); onEdit(project); }}
+                title="Add live URL"
+                className="inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-all"
+                style={{ background: "rgba(124,58,237,0.06)", color: "#9693b8", border: "1px dashed rgba(124,58,237,0.25)" }}
+                onMouseEnter={(e) => { const el = e.currentTarget; el.style.background = "rgba(124,58,237,0.12)"; el.style.color = "#7c3aed"; }}
+                onMouseLeave={(e) => { const el = e.currentTarget; el.style.background = "rgba(124,58,237,0.06)"; el.style.color = "#9693b8"; }}
+              >
+                <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+                </svg>
+                Add URL
+              </button>
+            ) : null}
+            {hasRepoUrl && (
               <a
                 href={project.repoUrl} target="_blank" rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
