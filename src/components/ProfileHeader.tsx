@@ -61,10 +61,10 @@ function StatChip({ label, count, color }: { label: string; count: number; color
   );
 }
 
-async function compressAndUpload(file: File, type: "cover" | "avatar"): Promise<string> {
-  const maxW = type === "cover" ? 1920 : 600;
-  const maxH = type === "cover" ? 1080 : 600;
-  const quality = 0.82;
+async function compressToDataUrl(file: File, type: "cover" | "avatar"): Promise<string> {
+  const maxW = type === "cover" ? 1280 : 400;
+  const maxH = type === "cover" ? 720 : 400;
+  const quality = 0.80;
 
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(1, maxW / bitmap.width, maxH / bitmap.height);
@@ -78,16 +78,7 @@ async function compressAndUpload(file: File, type: "cover" | "avatar"): Promise<
   ctx.drawImage(bitmap, 0, 0, w, h);
   bitmap.close();
 
-  const blob: Blob = await new Promise((res) => canvas.toBlob((b) => res(b!), "image/jpeg", quality));
-  const compressed = new File([blob], `${type}.jpg`, { type: "image/jpeg" });
-
-  const form = new FormData();
-  form.append("file", compressed);
-  form.append("type", type);
-  const res = await fetch("/api/upload", { method: "POST", body: form });
-  if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
-  const { url } = await res.json();
-  return url as string;
+  return canvas.toDataURL("image/jpeg", quality);
 }
 
 // ── Cover Editor ──────────────────────────────────────────────────────────────
@@ -284,12 +275,12 @@ export default function ProfileHeader({
     if (!file) return;
     setCoverUploading(true);
     try {
-      const url = await compressAndUpload(file, "cover");
-      onCoverChange(url);
+      const dataUrl = await compressToDataUrl(file, "cover");
+      onCoverChange(dataUrl);
       onCoverPositionChange({ x: 50, y: 50, scale: 1 });
       setEditingCover(true);
     } catch {
-      alert("Failed to upload cover photo. Please try again.");
+      alert("Failed to process cover photo. Please try again.");
     } finally {
       setCoverUploading(false);
     }
@@ -301,10 +292,10 @@ export default function ProfileHeader({
     if (!file) return;
     setAvatarUploading(true);
     try {
-      const url = await compressAndUpload(file, "avatar");
-      onAvatarChange(url);
+      const dataUrl = await compressToDataUrl(file, "avatar");
+      onAvatarChange(dataUrl);
     } catch {
-      alert("Failed to upload profile photo. Please try again.");
+      alert("Failed to process profile photo. Please try again.");
     } finally {
       setAvatarUploading(false);
     }
@@ -520,7 +511,7 @@ export default function ProfileHeader({
                 <path fillRule="evenodd" d="M1 8a2 2 0 0 1 2-2h.93a2 2 0 0 0 1.664-.89l.812-1.22A2 2 0 0 1 8.07 3h3.86a2 2 0 0 1 1.664.89l.812 1.22A2 2 0 0 0 16.07 6H17a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8Zm13.5 3a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM10 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
               </svg>
             )}
-            {coverUploading ? "Uploading…" : "Change Photo"}
+            {coverUploading ? "Processing…" : "Change Photo"}
           </button>
 
           {profile.cover && (
