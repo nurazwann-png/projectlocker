@@ -11,10 +11,11 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "ProjectLocker",
+    startupImage: "/icon.jpg",
   },
   icons: {
-    icon: "/icon.svg",
-    apple: "/icon.svg",
+    icon: "/icon.jpg",
+    apple: "/icon.jpg",
   },
 };
 
