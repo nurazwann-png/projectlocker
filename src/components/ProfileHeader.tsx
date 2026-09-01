@@ -196,7 +196,8 @@ function CoverEditor({ cover, initial, onSave, onCancel }: CoverEditorProps) {
           <input
             type="range"
             min={100}
-            max={180}
+            max={200}
+            step={1}
             value={Math.round(pos.scale * 100)}
             onChange={(e) => setPos((prev) => ({ ...prev, scale: Number(e.target.value) / 100 }))}
             className="flex-1 h-1.5 rounded-full appearance-none outline-none"
