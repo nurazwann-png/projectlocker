@@ -183,7 +183,7 @@ export default function DashboardPage() {
 
       {/* Auth button */}
       <div className="fixed top-4 right-4 z-50" style={{ filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.4))" }}>
-        <UserButton afterSignOutUrl="/sign-in" />
+        <UserButton />
       </div>
 
       {/* Profile Header */}
