@@ -43,3 +43,14 @@ model Project {
 
   @@index([userId])
 }
+
+model Comment {
+  id         String   @id @default(cuid())
+  projectId  String
+  authorId   String?
+  authorName String
+  body       String
+  createdAt  DateTime @default(now())
+
+  @@index([projectId])
+}

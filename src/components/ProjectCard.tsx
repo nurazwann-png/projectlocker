@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import type { Project } from "@/types/project";
 import StatusBadge from "./StatusBadge";
+import CommentSection from "./CommentSection";
 
 interface ProjectCardProps {
   project: Project;
@@ -381,6 +382,9 @@ export default function ProjectCard({
           </div>
         </div>
       </div>
+
+      {/* Comments */}
+      <CommentSection projectId={project.id} />
     </div>
   );
 }

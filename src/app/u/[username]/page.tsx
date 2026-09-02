@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { use } from "react";
+import Link from "next/link";
 import type { Project, ProjectStatus } from "@/types/project";
 import type { ProfileData, ProfileLinks, CoverPosition } from "@/hooks/useProfile";
 import ProjectCard from "@/components/ProjectCard";
@@ -126,12 +127,20 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
   return (
     <div className="min-h-screen" style={pageBg}>
       {/* "Viewing portfolio" banner */}
-      <div className="flex items-center justify-center gap-2 py-2 text-xs font-medium" style={{ background: "rgba(124,58,237,0.08)", borderBottom: "1px solid rgba(124,58,237,0.12)", color: "#7c3aed" }}>
-        <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-          <path d="M10 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" />
-          <path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 0 1 0-1.186A10.004 10.004 0 0 1 10 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0 1 10 17c-4.257 0-7.893-2.66-9.336-6.41ZM14 10a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z" clipRule="evenodd" />
-        </svg>
-        You&apos;re viewing <span className="font-semibold">@{username}</span>&apos;s portfolio · view only
+      <div className="flex items-center justify-between px-4 py-2 text-xs font-medium" style={{ background: "rgba(124,58,237,0.08)", borderBottom: "1px solid rgba(124,58,237,0.12)", color: "#7c3aed" }}>
+        <div className="flex items-center gap-2">
+          <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M10 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" />
+            <path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 0 1 0-1.186A10.004 10.004 0 0 1 10 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0 1 10 17c-4.257 0-7.893-2.66-9.336-6.41ZM14 10a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z" clipRule="evenodd" />
+          </svg>
+          You&apos;re viewing <span className="font-semibold ml-1">@{username}</span>&apos;s portfolio · view only
+        </div>
+        <Link href="/community" className="flex items-center gap-1 transition-colors hover:text-violet-700" style={{ color: "#7c3aed", textDecoration: "none" }}>
+          <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M10 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM6 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM1.49 15.326a.78.78 0 0 1-.358-.442 3 3 0 0 1 4.308-3.516 6.484 6.484 0 0 0-1.905 3.959c-.023.222-.014.442.025.654a4.97 4.97 0 0 1-2.07-.655ZM16.44 15.98a4.97 4.97 0 0 0 2.07-.654.78.78 0 0 0 .357-.442 3 3 0 0 0-4.308-3.517 6.484 6.484 0 0 1 1.907 3.96 2.32 2.32 0 0 1-.026.654ZM18 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM5.304 16.19a.844.844 0 0 1-.277-.71 5 5 0 0 1 9.947 0 .843.843 0 0 1-.277.71A6.975 6.975 0 0 1 10 18a6.974 6.974 0 0 1-4.696-1.81Z" />
+          </svg>
+          Community
+        </Link>
       </div>
 
       <ProfileHeader
