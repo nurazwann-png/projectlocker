@@ -22,6 +22,7 @@ export interface ProfileData {
   links: ProfileLinks;
   skills: string[];
   username?: string | null;
+  notesPin?: string | null;
 }
 
 const DEFAULT_BIO = "Full-Stack Developer · Building things that matter";
@@ -81,6 +82,7 @@ export function useProfile() {
           links: (row.links as ProfileLinks) ?? {},
           skills: (row.skills as string[]) ?? DEFAULT_SKILLS,
           username: (row.username as string) ?? null,
+          notesPin: (row.notesPin as string) ?? null,
         });
       })
       .catch(() => {
@@ -92,6 +94,7 @@ export function useProfile() {
           links: {},
           skills: DEFAULT_SKILLS,
           username: null,
+          notesPin: null,
         });
       })
       .finally(() => setHydrated(true));
@@ -137,5 +140,9 @@ export function useProfile() {
     setProfile((p) => ({ ...p, username }));
   }, []);
 
-  return { profile, hydrated, setBio, setCover, setCoverPosition, setAvatar, setLinks, setSkills, setUsername };
+  const setNotesPin = useCallback((pin: string) => {
+    setProfile((p) => ({ ...p, notesPin: pin }));
+  }, []);
+
+  return { profile, hydrated, setBio, setCover, setCoverPosition, setAvatar, setLinks, setSkills, setUsername, setNotesPin };
 }

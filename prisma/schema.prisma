@@ -18,6 +18,7 @@ model Profile {
   avatarUrl       String?
   links           Json?
   skills          Json?
+  notesPin        String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
@@ -33,6 +34,7 @@ model Project {
   techStack        Json?
   tags             Json?
   notes            String?
+  notesLocked      Boolean  @default(false)
   pinned           Boolean  @default(false)
   deploymentDate   String?
   coverImage       String?

@@ -19,6 +19,7 @@ function normalise(row: Record<string, unknown>): Project {
     repoUrl: (row.repoUrl as string) ?? "",
     techStack: (row.techStack as string[]) ?? [],
     notes: (row.notes as string) ?? "",
+    notesLocked: (row.notesLocked as boolean) ?? false,
     pinned: (row.pinned as boolean) ?? false,
     deploymentDate: (row.deploymentDate as string) ?? "",
     thumbnail: (row.coverImage as string | null) ?? null,
@@ -104,6 +105,11 @@ export function useProjects() {
     apiFetch(`/api/projects/${id}`, { method: "PATCH", body: JSON.stringify({ notes }) }).catch(() => {});
   }, []);
 
+  const updateNotesLock = useCallback((id: string, notesLocked: boolean): void => {
+    setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, notesLocked } : p)));
+    apiFetch(`/api/projects/${id}`, { method: "PATCH", body: JSON.stringify({ notesLocked }) }).catch(() => {});
+  }, []);
+
   // Import: upsert each project via the API
   const importProjects = useCallback(async (incoming: Project[]): Promise<void> => {
     const results = await Promise.allSettled(
@@ -127,5 +133,5 @@ export function useProjects() {
     });
   }, []);
 
-  return { projects, hydrated, addProject, updateProject, updateNotes, togglePin, deleteProject, importProjects };
+  return { projects, hydrated, addProject, updateProject, updateNotes, updateNotesLock, togglePin, deleteProject, importProjects };
 }

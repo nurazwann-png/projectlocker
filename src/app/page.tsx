@@ -15,8 +15,8 @@ import TagCloud from "@/components/TagCloud";
 import TimelineView from "@/components/TimelineView";
 
 export default function DashboardPage() {
-  const { projects, hydrated, addProject, updateProject, updateNotes, togglePin, deleteProject, importProjects } = useProjects();
-  const { profile, hydrated: profileHydrated, setBio, setCover, setCoverPosition, setAvatar, setLinks, setSkills, setUsername } = useProfile();
+  const { projects, hydrated, addProject, updateProject, updateNotes, updateNotesLock, togglePin, deleteProject, importProjects } = useProjects();
+  const { profile, hydrated: profileHydrated, setBio, setCover, setCoverPosition, setAvatar, setLinks, setSkills, setUsername, setNotesPin } = useProfile();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
@@ -589,6 +589,9 @@ export default function DashboardPage() {
         onClose={() => setDetailProject(null)}
         onEdit={(p) => { setDetailProject(null); openEditModal(p); }}
         onNotesChange={updateNotes}
+        onNotesLockChange={updateNotesLock}
+        onNotesPinChange={setNotesPin}
+        notesPin={profile.notesPin}
       />
 
       {/* Add/Edit Modal */}

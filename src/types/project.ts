@@ -11,6 +11,7 @@ export interface Project {
   status: ProjectStatus;
   thumbnail: string | null;
   notes: string;
+  notesLocked?: boolean;
   features: string[];
   pinned?: boolean;
   createdAt: string;

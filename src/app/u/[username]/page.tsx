@@ -63,6 +63,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
           status: (p.status as Project["status"]) ?? "Live",
           thumbnail: (p.coverImage as string | null) ?? null,
           notes: (p.notes as string) ?? "",
+          notesLocked: Boolean(p.notesLocked),
           features: Array.isArray(p.features) ? p.features as string[] : [],
           pinned: Boolean(p.pinned),
           createdAt: (p.createdAt as string) ?? "",

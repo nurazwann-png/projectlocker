@@ -13,9 +13,18 @@ export async function GET(_req: Request, { params }: { params: Promise<{ usernam
       id: true, title: true, description: true, status: true,
       liveUrl: true, techStack: true, tags: true,
       deploymentDate: true, coverImage: true, pinned: true,
+      notesLocked: true, notes: true,
       createdAt: true, updatedAt: true,
-      // repoUrl and notes are intentionally excluded — private to the owner
+      // repoUrl intentionally excluded
     },
   });
-  return NextResponse.json(projects);
+
+  // Strip notes from locked projects before sending to public viewers
+  const sanitised = projects.map(({ notes, notesLocked, ...rest }) => ({
+    ...rest,
+    notesLocked,
+    notes: notesLocked ? null : notes,
+  }));
+
+  return NextResponse.json(sanitised);
 }

@@ -9,47 +9,41 @@ interface ProjectDetailModalProps {
   onClose: () => void;
   onEdit: (project: Project) => void;
   onNotesChange: (id: string, notes: string) => void;
+  onNotesLockChange?: (id: string, locked: boolean) => void;
+  onNotesPinChange?: (pin: string) => void;
+  notesPin?: string | null;
   readOnly?: boolean;
 }
 
-const NOTES_PIN_KEY = "notes-pin";
-function loadPin(): string | null {
-  try { return localStorage.getItem(NOTES_PIN_KEY); } catch { return null; }
-}
-function savePin(pin: string) {
-  try { localStorage.setItem(NOTES_PIN_KEY, pin); } catch {}
-}
-
-export default function ProjectDetailModal({ project, onClose, onEdit, onNotesChange, readOnly = false }: ProjectDetailModalProps) {
+export default function ProjectDetailModal({
+  project, onClose, onEdit, onNotesChange,
+  onNotesLockChange, onNotesPinChange,
+  notesPin, readOnly = false,
+}: ProjectDetailModalProps) {
   const [notes, setNotes] = useState("");
   const [notesSaved, setNotesSaved] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // PIN unlock state (owner only, when notesLocked = true)
   const [notesUnlocked, setNotesUnlocked] = useState(false);
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState(false);
-  const [settingPin, setSettingPin] = useState(false);
-  const [pinConfirm, setPinConfirm] = useState("");
 
-  function tryUnlock() {
-    const storedPin = loadPin();
-    if (!storedPin) { setNotesUnlocked(true); return; }
-    if (pinInput === storedPin) { setNotesUnlocked(true); setPinError(false); setPinInput(""); }
-    else { setPinError(true); setPinInput(""); }
-  }
-  function handleSetPin() {
-    if (pinInput.length !== 4) return;
-    if (pinInput !== pinConfirm) { setPinError(true); return; }
-    savePin(pinInput);
-    setPinInput(""); setPinConfirm(""); setSettingPin(false); setPinError(false);
-  }
+  // Set/change PIN dialog
+  const [settingPin, setSettingPin] = useState(false);
+  const [lockAfterPin, setLockAfterPin] = useState(false);
+  const [pinDraft, setPinDraft] = useState("");
+  const [pinConfirm, setPinConfirm] = useState("");
+  const [pinConfirmError, setPinConfirmError] = useState(false);
+  const [pinSaving, setPinSaving] = useState(false);
 
   useEffect(() => {
     if (project) {
       setNotes(project.notes ?? "");
       setNotesUnlocked(false);
-      setPinInput(""); setPinError(false); setSettingPin(false);
+      setPinInput(""); setPinError(false);
+      setSettingPin(false); setLockAfterPin(false);
+      setPinDraft(""); setPinConfirm(""); setPinConfirmError(false);
     }
   }, [project?.id]);
 
@@ -75,17 +69,55 @@ export default function ProjectDetailModal({ project, onClose, onEdit, onNotesCh
 
   const liveUrl = project.liveUrl?.startsWith("http") ? project.liveUrl : project.liveUrl ? `https://${project.liveUrl}` : null;
   const repoUrl = project.repoUrl?.startsWith("http") ? project.repoUrl : project.repoUrl ? `https://${project.repoUrl}` : null;
+  const isLocked = project.notesLocked ?? false;
+
+  function tryUnlock() {
+    if (!notesPin) { setNotesUnlocked(true); return; }
+    if (pinInput === notesPin) { setNotesUnlocked(true); setPinError(false); setPinInput(""); }
+    else { setPinError(true); setPinInput(""); }
+  }
+
+  function handleLockClick() {
+    if (!notesPin) {
+      // No PIN set yet — ask user to set one first, then lock
+      setLockAfterPin(true);
+      setSettingPin(true);
+    } else {
+      onNotesLockChange?.(project!.id, true);
+      setNotesUnlocked(false);
+    }
+  }
+
+  async function handleSavePin() {
+    if (pinDraft.length !== 4) return;
+    if (pinDraft !== pinConfirm) { setPinConfirmError(true); return; }
+    setPinSaving(true);
+    try {
+      await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notesPin: pinDraft }),
+      });
+      onNotesPinChange?.(pinDraft);
+      if (lockAfterPin) {
+        onNotesLockChange?.(project!.id, true);
+        setNotesUnlocked(false);
+      }
+    } finally {
+      setPinSaving(false);
+      setSettingPin(false);
+      setLockAfterPin(false);
+      setPinDraft(""); setPinConfirm(""); setPinConfirmError(false);
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
       <div
         className="absolute inset-0"
         style={{ background: "rgba(14,11,30,0.55)", backdropFilter: "blur(20px)" }}
         onClick={onClose}
       />
-
-      {/* Modal */}
       <div
         className="relative z-10 flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl max-h-[90dvh] overflow-y-auto"
         style={{
@@ -102,9 +134,7 @@ export default function ProjectDetailModal({ project, onClose, onEdit, onNotesCh
           ) : (
             <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, #7c3aed, #db2777, #0ea5e9)" }} />
           )}
-          {/* Fade to white background */}
           <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, transparent 30%, #ffffff 100%)" }} />
-          {/* Close button */}
           <button
             onClick={onClose}
             className="absolute right-4 top-4 rounded-xl p-2 transition-colors"
@@ -116,7 +146,6 @@ export default function ProjectDetailModal({ project, onClose, onEdit, onNotesCh
               <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
             </svg>
           </button>
-          {/* Status badge */}
           <div className="absolute left-4 top-4">
             <StatusBadge status={project.status} size="sm" />
           </div>
@@ -128,9 +157,7 @@ export default function ProjectDetailModal({ project, onClose, onEdit, onNotesCh
           <div className="mb-4 flex items-start justify-between gap-4">
             <div>
               <h2 className="text-2xl font-bold" style={{ color: "#0d0b1e", fontFamily: "'Syne', system-ui, sans-serif" }}>{project.name}</h2>
-              <p className="mt-1 text-sm" style={{ color: "#9693b8" }}>
-                Deployed {project.deploymentDate || "—"}
-              </p>
+              <p className="mt-1 text-sm" style={{ color: "#9693b8" }}>Deployed {project.deploymentDate || "—"}</p>
             </div>
             {!readOnly && (
               <button
@@ -184,8 +211,7 @@ export default function ProjectDetailModal({ project, onClose, onEdit, onNotesCh
           {(liveUrl || (!readOnly && repoUrl)) && (
             <div className="mb-6 flex flex-wrap gap-3">
               {liveUrl && (
-                <a
-                  href={liveUrl} target="_blank" rel="noopener noreferrer"
+                <a href={liveUrl} target="_blank" rel="noopener noreferrer"
                   className="btn-gradient inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white transition-colors"
                 >
                   <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
@@ -196,8 +222,7 @@ export default function ProjectDetailModal({ project, onClose, onEdit, onNotesCh
                 </a>
               )}
               {!readOnly && repoUrl && (
-                <a
-                  href={repoUrl} target="_blank" rel="noopener noreferrer"
+                <a href={repoUrl} target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-colors"
                   style={{ background: "rgba(124,58,237,0.06)", color: "#5b5880", border: "1px solid rgba(124,58,237,0.15)" }}
                   onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#0d0b1e"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "rgba(124,58,237,0.3)"; }}
@@ -213,98 +238,161 @@ export default function ProjectDetailModal({ project, onClose, onEdit, onNotesCh
           )}
 
           {/* Divider */}
-          {!readOnly && <div className="mb-5" style={{ height: 1, background: "rgba(124,58,237,0.1)" }} />}
+          <div className="mb-5" style={{ height: 1, background: "rgba(124,58,237,0.1)" }} />
 
-          {/* Notes / Journal with PIN lock — owner only */}
-          {!readOnly && <div>
-            <div className="mb-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" style={{ color: "#7c3aed" }}>
+          {/* Notes section */}
+          {readOnly ? (
+            /* Public viewer */
+            isLocked ? (
+              <div className="rounded-xl p-5 flex items-center gap-3" style={{ background: "rgba(124,58,237,0.04)", border: "1px solid rgba(124,58,237,0.12)" }}>
+                <svg className="h-5 w-5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" style={{ color: "#9693b8" }}>
                   <path fillRule="evenodd" d="M10 1a4.5 4.5 0 0 0-4.5 4.5V9H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-.5V5.5A4.5 4.5 0 0 0 10 1Zm3 8V5.5a3 3 0 1 0-6 0V9h6Z" clipRule="evenodd" />
                 </svg>
-                <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "#9693b8", fontFamily: "'Syne', system-ui, sans-serif" }}>Private Notes</p>
+                <p className="text-sm" style={{ color: "#9693b8" }}>Notes are private</p>
               </div>
-              <div className="flex items-center gap-2">
-                {notesSaved && <span className="text-xs" style={{ color: "#059669" }}>Saved ✓</span>}
-                {notesUnlocked && (
-                  <button
-                    onClick={() => setSettingPin((v) => !v)}
-                    className="text-xs transition-colors"
-                    style={{ color: "#9693b8" }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#7c3aed"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#9693b8"; }}
-                    title="Set/change PIN"
-                  >
-                    {loadPin() ? "Change PIN" : "Set PIN"}
-                  </button>
-                )}
-                {notesUnlocked && (
-                  <button
-                    onClick={() => setNotesUnlocked(false)}
-                    className="text-xs transition-colors"
-                    style={{ color: "#9693b8" }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#5b5880"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#9693b8"; }}
-                  >
-                    Lock
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {settingPin && notesUnlocked ? (
-              <div className="rounded-xl p-4 space-y-3" style={{ background: "rgba(124,58,237,0.04)", border: "1px solid rgba(124,58,237,0.2)" }}>
-                <p className="text-xs font-semibold" style={{ color: "#7c3aed" }}>Set a 4-digit PIN</p>
-                <input type="password" inputMode="numeric" maxLength={4} value={pinInput} onChange={(e) => { setPinInput(e.target.value.replace(/\D/g, "")); setPinError(false); }} placeholder="New PIN" className="w-full rounded-lg px-3 py-2 text-sm outline-none" style={{ background: "#ffffff", border: "1px solid rgba(124,58,237,0.25)", color: "#0d0b1e" }} />
-                <input type="password" inputMode="numeric" maxLength={4} value={pinConfirm} onChange={(e) => { setPinConfirm(e.target.value.replace(/\D/g, "")); setPinError(false); }} placeholder="Confirm PIN" className="w-full rounded-lg px-3 py-2 text-sm outline-none" style={{ background: "#ffffff", border: `1px solid ${pinError ? "rgba(220,38,38,0.5)" : "rgba(124,58,237,0.25)"}`, color: "#0d0b1e" }} />
-                {pinError && <p className="text-xs" style={{ color: "#dc2626" }}>PINs don&apos;t match</p>}
-                <div className="flex gap-2">
-                  <button onClick={handleSetPin} className="rounded-lg px-3 py-1.5 text-xs font-semibold" style={{ background: "rgba(124,58,237,0.1)", color: "#7c3aed", border: "1px solid rgba(124,58,237,0.25)" }}>Save PIN</button>
-                  <button onClick={() => { setSettingPin(false); setPinInput(""); setPinConfirm(""); setPinError(false); }} className="text-xs" style={{ color: "#9693b8" }}>Cancel</button>
+            ) : project.notes ? (
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider" style={{ color: "#9693b8", fontFamily: "'Syne', system-ui, sans-serif" }}>Notes</p>
+                <div className="rounded-xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap" style={{ background: "rgba(124,58,237,0.03)", border: "1px solid rgba(124,58,237,0.12)", color: "#5b5880" }}>
+                  {project.notes}
                 </div>
               </div>
-            ) : !notesUnlocked ? (
-              <div className="rounded-xl p-6 flex flex-col items-center gap-4" style={{ background: "rgba(124,58,237,0.04)", border: "1px solid rgba(124,58,237,0.12)" }}>
-                {loadPin() ? (
-                  <>
-                    <p className="text-sm" style={{ color: "#5b5880" }}>Enter your 4-digit PIN to view notes</p>
-                    <input
-                      type="password" inputMode="numeric" maxLength={4}
-                      value={pinInput}
-                      onChange={(e) => { setPinInput(e.target.value.replace(/\D/g, "")); setPinError(false); }}
-                      onKeyDown={(e) => { if (e.key === "Enter") tryUnlock(); }}
-                      placeholder="····"
-                      className="rounded-xl px-4 py-2 text-center text-lg font-bold tracking-widest outline-none w-32"
-                      style={{ background: "#ffffff", border: `1px solid ${pinError ? "rgba(220,38,38,0.5)" : "rgba(124,58,237,0.3)"}`, color: "#0d0b1e" }}
-                      autoFocus
-                    />
-                    {pinError && <p className="text-xs" style={{ color: "#dc2626" }}>Incorrect PIN</p>}
-                    <button onClick={tryUnlock} className="rounded-xl px-5 py-2 text-sm font-semibold" style={{ background: "rgba(124,58,237,0.1)", color: "#7c3aed", border: "1px solid rgba(124,58,237,0.25)" }}>Unlock</button>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm" style={{ color: "#5b5880" }}>Notes are unprotected</p>
-                    <button onClick={() => { setNotesUnlocked(true); }} className="rounded-xl px-5 py-2 text-sm font-semibold" style={{ background: "rgba(124,58,237,0.1)", color: "#7c3aed", border: "1px solid rgba(124,58,237,0.25)" }}>Open Notes</button>
-                  </>
-                )}
+            ) : null
+          ) : (
+            /* Owner view */
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" style={{ color: "#7c3aed" }}>
+                    <path fillRule="evenodd" d="M10 1a4.5 4.5 0 0 0-4.5 4.5V9H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-.5V5.5A4.5 4.5 0 0 0 10 1Zm3 8V5.5a3 3 0 1 0-6 0V9h6Z" clipRule="evenodd" />
+                  </svg>
+                  <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "#9693b8", fontFamily: "'Syne', system-ui, sans-serif" }}>Notes</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  {notesSaved && !isLocked && <span className="text-xs" style={{ color: "#059669" }}>Saved ✓</span>}
+                  {/* Change PIN button — visible when unlocked or not locked */}
+                  {(!isLocked || notesUnlocked) && (
+                    <button
+                      onClick={() => { setSettingPin((v) => !v); setLockAfterPin(false); }}
+                      className="text-xs transition-colors"
+                      style={{ color: "#9693b8" }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#7c3aed"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#9693b8"; }}
+                    >
+                      {notesPin ? "Change PIN" : "Set PIN"}
+                    </button>
+                  )}
+                  {/* Lock / Unlock toggle */}
+                  {!isLocked ? (
+                    <button
+                      onClick={handleLockClick}
+                      className="inline-flex items-center gap-1 text-xs transition-colors"
+                      style={{ color: "#9693b8" }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#7c3aed"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#9693b8"; }}
+                      title="Lock this note"
+                    >
+                      <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 1a4.5 4.5 0 0 0-4.5 4.5V9H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-.5V5.5A4.5 4.5 0 0 0 10 1Zm3 8V5.5a3 3 0 1 0-6 0V9h6Z" clipRule="evenodd" />
+                      </svg>
+                      Lock
+                    </button>
+                  ) : notesUnlocked ? (
+                    <button
+                      onClick={() => { onNotesLockChange?.(project.id, false); setNotesUnlocked(false); }}
+                      className="inline-flex items-center gap-1 text-xs transition-colors"
+                      style={{ color: "#059669" }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#047857"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#059669"; }}
+                      title="Remove lock from this note"
+                    >
+                      <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M14.5 9A3.5 3.5 0 0 0 8 6.5V9h6.5Z" />
+                        <path fillRule="evenodd" d="M5 9H3.5A1.5 1.5 0 0 0 2 10.5v7A1.5 1.5 0 0 0 3.5 19h13a1.5 1.5 0 0 0 1.5-1.5v-7A1.5 1.5 0 0 0 16.5 9H5Z" clipRule="evenodd" />
+                      </svg>
+                      Unlock note
+                    </button>
+                  ) : null}
+                </div>
               </div>
-            ) : (
-              <>
-                <textarea
-                  ref={textareaRef}
-                  value={notes}
-                  onChange={(e) => handleNotesChange(e.target.value)}
-                  placeholder="Jot down key learnings, known issues, future ideas… only you can see this."
-                  rows={5}
-                  className="w-full resize-none rounded-xl px-4 py-3 text-sm outline-none transition-all"
-                  style={{ background: "rgba(124,58,237,0.03)", border: "1px solid rgba(124,58,237,0.15)", color: "#0d0b1e", lineHeight: 1.7 }}
-                  onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(124,58,237,0.4)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(124,58,237,0.08)"; }}
-                  onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(124,58,237,0.15)"; e.currentTarget.style.boxShadow = "none"; }}
-                />
-                <p className="mt-1.5 text-xs" style={{ color: "#9693b8" }}>Auto-saved · stays local on this device</p>
-              </>
-            )}
-          </div>}
+
+              {/* Set/change PIN dialog */}
+              {settingPin && (
+                <div className="mb-4 rounded-xl p-4 space-y-3" style={{ background: "rgba(124,58,237,0.04)", border: "1px solid rgba(124,58,237,0.2)" }}>
+                  <p className="text-xs font-semibold" style={{ color: "#7c3aed" }}>{notesPin ? "Change your 4-digit PIN" : "Set a 4-digit PIN"}</p>
+                  <input
+                    type="password" inputMode="numeric" maxLength={4}
+                    value={pinDraft}
+                    onChange={(e) => { setPinDraft(e.target.value.replace(/\D/g, "")); setPinConfirmError(false); }}
+                    placeholder="New PIN"
+                    className="w-full rounded-lg px-3 py-2 text-sm outline-none"
+                    style={{ background: "#ffffff", border: "1px solid rgba(124,58,237,0.25)", color: "#0d0b1e" }}
+                  />
+                  <input
+                    type="password" inputMode="numeric" maxLength={4}
+                    value={pinConfirm}
+                    onChange={(e) => { setPinConfirm(e.target.value.replace(/\D/g, "")); setPinConfirmError(false); }}
+                    placeholder="Confirm PIN"
+                    className="w-full rounded-lg px-3 py-2 text-sm outline-none"
+                    style={{ background: "#ffffff", border: `1px solid ${pinConfirmError ? "rgba(220,38,38,0.5)" : "rgba(124,58,237,0.25)"}`, color: "#0d0b1e" }}
+                  />
+                  {pinConfirmError && <p className="text-xs" style={{ color: "#dc2626" }}>PINs don&apos;t match</p>}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSavePin}
+                      disabled={pinSaving || pinDraft.length !== 4}
+                      className="rounded-lg px-3 py-1.5 text-xs font-semibold"
+                      style={{ background: "rgba(124,58,237,0.1)", color: "#7c3aed", border: "1px solid rgba(124,58,237,0.25)", opacity: pinDraft.length !== 4 ? 0.5 : 1 }}
+                    >
+                      {pinSaving ? "Saving…" : lockAfterPin ? "Save PIN & Lock" : "Save PIN"}
+                    </button>
+                    <button
+                      onClick={() => { setSettingPin(false); setLockAfterPin(false); setPinDraft(""); setPinConfirm(""); setPinConfirmError(false); }}
+                      className="text-xs"
+                      style={{ color: "#9693b8" }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Locked — show PIN entry */}
+              {isLocked && !notesUnlocked ? (
+                <div className="rounded-xl p-6 flex flex-col items-center gap-4" style={{ background: "rgba(124,58,237,0.04)", border: "1px solid rgba(124,58,237,0.12)" }}>
+                  <p className="text-sm" style={{ color: "#5b5880" }}>Enter your PIN to view this note</p>
+                  <input
+                    type="password" inputMode="numeric" maxLength={4}
+                    value={pinInput}
+                    onChange={(e) => { setPinInput(e.target.value.replace(/\D/g, "")); setPinError(false); }}
+                    onKeyDown={(e) => { if (e.key === "Enter") tryUnlock(); }}
+                    placeholder="····"
+                    className="rounded-xl px-4 py-2 text-center text-lg font-bold tracking-widest outline-none w-32"
+                    style={{ background: "#ffffff", border: `1px solid ${pinError ? "rgba(220,38,38,0.5)" : "rgba(124,58,237,0.3)"}`, color: "#0d0b1e" }}
+                    autoFocus
+                  />
+                  {pinError && <p className="text-xs" style={{ color: "#dc2626" }}>Incorrect PIN</p>}
+                  <button onClick={tryUnlock} className="rounded-xl px-5 py-2 text-sm font-semibold" style={{ background: "rgba(124,58,237,0.1)", color: "#7c3aed", border: "1px solid rgba(124,58,237,0.25)" }}>
+                    Unlock
+                  </button>
+                </div>
+              ) : !isLocked || notesUnlocked ? (
+                <>
+                  <textarea
+                    value={notes}
+                    onChange={(e) => handleNotesChange(e.target.value)}
+                    placeholder="Jot down key learnings, known issues, future ideas…"
+                    rows={5}
+                    className="w-full resize-none rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                    style={{ background: "rgba(124,58,237,0.03)", border: "1px solid rgba(124,58,237,0.15)", color: "#0d0b1e", lineHeight: 1.7 }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(124,58,237,0.4)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(124,58,237,0.08)"; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(124,58,237,0.15)"; e.currentTarget.style.boxShadow = "none"; }}
+                  />
+                  <p className="mt-1.5 text-xs" style={{ color: "#9693b8" }}>Auto-saved · synced across devices</p>
+                </>
+              ) : null}
+            </div>
+          )}
         </div>
       </div>
     </div>
