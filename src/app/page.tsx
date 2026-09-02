@@ -625,6 +625,7 @@ export default function DashboardPage() {
         onNotesLockChange={updateNotesLock}
         onNotesPinChange={setNotesPin}
         notesPin={profile.notesPin}
+        isOwner={true}
       />
 
       {/* Add/Edit Modal */}

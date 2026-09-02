@@ -6,14 +6,18 @@ import { useUser } from "@clerk/nextjs";
 interface Comment {
   id: string;
   parentId: string | null;
+  authorId?: string | null;
   authorName: string;
   body: string;
   createdAt: string;
+  acknowledged: boolean;
+  acknowledgedAt?: string | null;
   replies?: Comment[];
 }
 
 interface CommentSectionProps {
   projectId: string;
+  isOwner?: boolean;
 }
 
 function hashStr(s: string): number {
@@ -99,7 +103,6 @@ function CommentForm({ projectId, parentId, onPosted, onCancel, placeholder = "W
 
   return (
     <form onSubmit={handleSubmit} className="space-y-2">
-      {/* Identity row */}
       {isLoaded && clerkName ? (
         <div className="flex items-center gap-2 rounded-lg px-3 py-1.5" style={{ background: "rgba(124,58,237,0.04)", border: "1px solid rgba(124,58,237,0.15)" }}>
           {user?.imageUrl ? (
@@ -125,8 +128,6 @@ function CommentForm({ projectId, parentId, onPosted, onCancel, placeholder = "W
           onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(124,58,237,0.2)"; }}
         />
       )}
-
-      {/* Body */}
       <textarea
         value={body}
         onChange={(e) => setBody(e.target.value)}
@@ -140,25 +141,16 @@ function CommentForm({ projectId, parentId, onPosted, onCancel, placeholder = "W
         onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(124,58,237,0.2)"; }}
         autoFocus
       />
-
       {error && <p className="text-[10px]" style={{ color: "#dc2626" }}>{error}</p>}
-
       <div className="flex items-center justify-between">
         <span className="text-[10px]" style={{ color: "#c4bfe0" }}>{body.length}/500</span>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={onCancel} className="text-xs transition-colors" style={{ color: "#9693b8" }}>
-            Cancel
-          </button>
+          <button type="button" onClick={onCancel} className="text-xs transition-colors" style={{ color: "#9693b8" }}>Cancel</button>
           <button
             type="submit"
             disabled={submitting || !authorName.trim() || !body.trim()}
             className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-all"
-            style={{
-              background: "rgba(124,58,237,0.1)",
-              color: "#7c3aed",
-              border: "1px solid rgba(124,58,237,0.25)",
-              opacity: (submitting || !authorName.trim() || !body.trim()) ? 0.5 : 1,
-            }}
+            style={{ background: "rgba(124,58,237,0.1)", color: "#7c3aed", border: "1px solid rgba(124,58,237,0.25)", opacity: (submitting || !authorName.trim() || !body.trim()) ? 0.5 : 1 }}
           >
             {submitting ? "Posting…" : parentId ? "Reply" : "Post"}
           </button>
@@ -168,31 +160,38 @@ function CommentForm({ projectId, parentId, onPosted, onCancel, placeholder = "W
   );
 }
 
-/* ── single comment row (with optional replies) ── */
+/* ── single comment row ── */
 interface CommentRowProps {
   comment: Comment;
   projectId: string;
   onReplyPosted: (reply: Comment, parentId: string) => void;
+  onAcknowledge: (commentId: string) => void;
+  isOwner?: boolean;
   isReply?: boolean;
 }
 
-function CommentRow({ comment, projectId, onReplyPosted, isReply = false }: CommentRowProps) {
+function CommentRow({ comment, projectId, onReplyPosted, onAcknowledge, isOwner = false, isReply = false }: CommentRowProps) {
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [repliesExpanded, setRepliesExpanded] = useState(false);
+  const [acking, setAcking] = useState(false);
   const replies = comment.replies ?? [];
+
+  async function handleAcknowledge() {
+    setAcking(true);
+    try {
+      await fetch(`/api/comments/${comment.id}/acknowledge`, { method: "PATCH" });
+      onAcknowledge(comment.id);
+    } finally {
+      setAcking(false);
+    }
+  }
 
   return (
     <div>
-      {/* Comment bubble */}
       <div className="flex gap-2 items-start">
         <div
           className="flex-shrink-0 rounded-full flex items-center justify-center font-bold text-white"
-          style={{
-            background: avatarColor(comment.authorName),
-            width: isReply ? 22 : 26,
-            height: isReply ? 22 : 26,
-            fontSize: isReply ? 9 : 10,
-          }}
+          style={{ background: avatarColor(comment.authorName), width: isReply ? 22 : 26, height: isReply ? 22 : 26, fontSize: isReply ? 9 : 10 }}
         >
           {comment.authorName.charAt(0).toUpperCase()}
         </div>
@@ -200,25 +199,47 @@ function CommentRow({ comment, projectId, onReplyPosted, isReply = false }: Comm
           <div className="flex items-baseline gap-1.5 flex-wrap">
             <span className="text-xs font-semibold" style={{ color: "#0d0b1e", fontSize: isReply ? 11 : 12 }}>{comment.authorName}</span>
             <span style={{ color: "#c4bfe0", fontSize: 10 }}>{relativeTime(comment.createdAt)}</span>
+            {comment.acknowledged && (
+              <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold" style={{ background: "rgba(16,185,129,0.1)", color: "#10b981" }}>
+                ✓ Noted
+              </span>
+            )}
           </div>
           <p className="leading-relaxed mt-0.5 break-words" style={{ color: "#5b5880", fontSize: isReply ? 11 : 12 }}>{comment.body}</p>
 
-          {/* Reply button — only on top-level comments */}
-          {!isReply && (
-            <button
-              onClick={() => setShowReplyForm((v) => !v)}
-              className="mt-1 text-[11px] font-medium transition-colors"
-              style={{ color: showReplyForm ? "#7c3aed" : "#9693b8" }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#7c3aed"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = showReplyForm ? "#7c3aed" : "#9693b8"; }}
-            >
-              {showReplyForm ? "Cancel" : "↩ Reply"}
-            </button>
-          )}
+          <div className="flex items-center gap-3 mt-1">
+            {!isReply && (
+              <button
+                onClick={() => setShowReplyForm((v) => !v)}
+                className="text-[11px] font-medium transition-colors"
+                style={{ color: showReplyForm ? "#7c3aed" : "#9693b8" }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#7c3aed"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = showReplyForm ? "#7c3aed" : "#9693b8"; }}
+              >
+                {showReplyForm ? "Cancel" : "↩ Reply"}
+              </button>
+            )}
+            {/* Acknowledge button — only for owner on top-level comments */}
+            {isOwner && !isReply && (
+              <button
+                onClick={handleAcknowledge}
+                disabled={acking}
+                className="inline-flex items-center gap-1 text-[11px] font-medium rounded-full px-2 py-0.5 transition-all"
+                style={{
+                  background: comment.acknowledged ? "rgba(16,185,129,0.1)" : "rgba(124,58,237,0.06)",
+                  color: comment.acknowledged ? "#10b981" : "#9693b8",
+                  border: `1px solid ${comment.acknowledged ? "rgba(16,185,129,0.2)" : "rgba(124,58,237,0.15)"}`,
+                  opacity: acking ? 0.6 : 1,
+                }}
+                title={comment.acknowledged ? "Mark as unacknowledged" : "Mark as noted / taken into consideration"}
+              >
+                {comment.acknowledged ? "✓ Noted" : "Mark as noted"}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Inline reply form */}
       {showReplyForm && (
         <div className="ml-8 mt-2">
           <CommentForm
@@ -235,32 +256,19 @@ function CommentRow({ comment, projectId, onReplyPosted, isReply = false }: Comm
         </div>
       )}
 
-      {/* Replies */}
       {replies.length > 0 && (
         <div className="ml-8 mt-2 space-y-2.5">
-          {/* Show/hide toggle */}
           {!repliesExpanded && (
-            <button
-              onClick={() => setRepliesExpanded(true)}
-              className="text-[11px] font-medium transition-colors"
-              style={{ color: "#7c3aed" }}
-            >
+            <button onClick={() => setRepliesExpanded(true)} className="text-[11px] font-medium" style={{ color: "#7c3aed" }}>
               ▾ {replies.length} {replies.length === 1 ? "reply" : "replies"}
             </button>
           )}
-
           {repliesExpanded && (
             <>
               {replies.map((r) => (
-                <CommentRow key={r.id} comment={r} projectId={projectId} onReplyPosted={onReplyPosted} isReply />
+                <CommentRow key={r.id} comment={r} projectId={projectId} onReplyPosted={onReplyPosted} onAcknowledge={onAcknowledge} isOwner={isOwner} isReply />
               ))}
-              <button
-                onClick={() => setRepliesExpanded(false)}
-                className="text-[11px] transition-colors"
-                style={{ color: "#9693b8" }}
-              >
-                ▴ Hide replies
-              </button>
+              <button onClick={() => setRepliesExpanded(false)} className="text-[11px]" style={{ color: "#9693b8" }}>▴ Hide replies</button>
             </>
           )}
         </div>
@@ -270,7 +278,7 @@ function CommentRow({ comment, projectId, onReplyPosted, isReply = false }: Comm
 }
 
 /* ── main CommentSection ── */
-export default function CommentSection({ projectId }: CommentSectionProps) {
+export default function CommentSection({ projectId, isOwner = false }: CommentSectionProps) {
   const [tree, setTree] = useState<Comment[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loaded, setLoaded] = useState(false);
@@ -278,7 +286,7 @@ export default function CommentSection({ projectId }: CommentSectionProps) {
   const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/public/comments/${projectId}`)
+    fetch(`/api/public/comments/${projectId}`, { credentials: "include" })
       .then((r) => r.json())
       .then((data: Omit<Comment, "replies">[]) => {
         if (Array.isArray(data)) {
@@ -303,18 +311,26 @@ export default function CommentSection({ projectId }: CommentSectionProps) {
 
   function handleReplyPosted(reply: Comment, parentId: string) {
     setTree((prev) =>
-      prev.map((c) =>
-        c.id === parentId ? { ...c, replies: [...(c.replies ?? []), reply] } : c
-      )
+      prev.map((c) => c.id === parentId ? { ...c, replies: [...(c.replies ?? []), reply] } : c)
     );
     setTotalCount((n) => n + 1);
   }
 
+  function handleAcknowledge(commentId: string) {
+    setTree((prev) =>
+      prev.map((c) =>
+        c.id === commentId
+          ? { ...c, acknowledged: !c.acknowledged, acknowledgedAt: !c.acknowledged ? new Date().toISOString() : null }
+          : c
+      )
+    );
+  }
+
+  // If not owner and no comments visible, show minimal UI
+  const showCommentForm = isOwner || true; // anyone can comment
+
   return (
-    <div
-      onClick={(e) => e.stopPropagation()}
-      style={{ borderTop: "1px solid rgba(124,58,237,0.08)" }}
-    >
+    <div onClick={(e) => e.stopPropagation()} style={{ borderTop: "1px solid rgba(124,58,237,0.08)" }}>
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-3 pb-2">
         <button
@@ -329,18 +345,28 @@ export default function CommentSection({ projectId }: CommentSectionProps) {
           </svg>
           <span>{loaded ? `${totalCount} comment${totalCount !== 1 ? "s" : ""}` : "…"}</span>
         </button>
-        <button
-          onClick={() => { setShowForm((v) => !v); }}
-          className="text-xs font-medium transition-colors"
-          style={{ color: showForm ? "#7c3aed" : "#9693b8" }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#7c3aed"; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = showForm ? "#7c3aed" : "#9693b8"; }}
-        >
-          {showForm ? "Cancel" : "+ Comment"}
-        </button>
+        {showCommentForm && (
+          <button
+            onClick={() => setShowForm((v) => !v)}
+            className="text-xs font-medium transition-colors"
+            style={{ color: showForm ? "#7c3aed" : "#9693b8" }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#7c3aed"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = showForm ? "#7c3aed" : "#9693b8"; }}
+          >
+            {showForm ? "Cancel" : "+ Comment"}
+          </button>
+        )}
       </div>
 
-      {/* Top-level comments */}
+      {/* Pending acknowledgement notice for owner */}
+      {isOwner && loaded && tree.some((c) => !c.acknowledged) && (
+        <div className="mx-5 mb-2 flex items-center gap-2 rounded-lg px-3 py-1.5 text-[11px]" style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)", color: "#b45309" }}>
+          <svg className="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" /></svg>
+          {tree.filter((c) => !c.acknowledged).length} comment{tree.filter((c) => !c.acknowledged).length !== 1 ? "s" : ""} pending review
+        </div>
+      )}
+
+      {/* Comments list */}
       {loaded && tree.length > 0 && (
         <div className="px-5 pb-2 space-y-3">
           {visibleRoots.map((c) => (
@@ -349,42 +375,31 @@ export default function CommentSection({ projectId }: CommentSectionProps) {
               comment={c}
               projectId={projectId}
               onReplyPosted={handleReplyPosted}
+              onAcknowledge={handleAcknowledge}
+              isOwner={isOwner}
             />
           ))}
-
           {!expanded && hidden > 0 && (
-            <button
-              onClick={() => setExpanded(true)}
-              className="text-xs font-medium transition-colors"
-              style={{ color: "#7c3aed" }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#6d28d9"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#7c3aed"; }}
-            >
+            <button onClick={() => setExpanded(true)} className="text-xs font-medium" style={{ color: "#7c3aed" }}>
               Show {hidden} more ▾
             </button>
           )}
           {expanded && tree.length > VISIBLE && (
-            <button
-              onClick={() => setExpanded(false)}
-              className="text-xs transition-colors"
-              style={{ color: "#9693b8" }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#5b5880"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#9693b8"; }}
-            >
+            <button onClick={() => setExpanded(false)} className="text-xs" style={{ color: "#9693b8" }}>
               Show less ▴
             </button>
           )}
         </div>
       )}
 
-      {/* New top-level comment form */}
+      {/* Empty state for non-owner */}
+      {loaded && tree.length === 0 && !isOwner && (
+        <p className="px-5 pb-3 text-xs" style={{ color: "#c4bfe0" }}>No comments yet. Be the first!</p>
+      )}
+
       {showForm && (
         <div className="px-5 pb-4">
-          <CommentForm
-            projectId={projectId}
-            onPosted={handleTopLevelPosted}
-            onCancel={() => setShowForm(false)}
-          />
+          <CommentForm projectId={projectId} onPosted={handleTopLevelPosted} onCancel={() => setShowForm(false)} />
         </div>
       )}
     </div>

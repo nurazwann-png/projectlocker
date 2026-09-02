@@ -1,18 +1,69 @@
 import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
+
+const ADMIN_USER_ID = process.env.ADMIN_USER_ID ?? "";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const comments = await prisma.comment.findMany({
-    where: { projectId },
-    orderBy: { createdAt: "asc" },
-    select: { id: true, parentId: true, authorName: true, body: true, createdAt: true },
-  });
-  return NextResponse.json(comments);
+  const { userId } = await auth();
+
+  const project = await prisma.project.findUnique({ where: { id: projectId }, select: { userId: true } });
+  if (!project) return NextResponse.json([], { status: 200 });
+
+  const isOwner = !!userId && userId === project.userId;
+  const isAdmin = !!userId && userId === ADMIN_USER_ID;
+
+  if (isOwner || isAdmin) {
+    const comments = await prisma.comment.findMany({
+      where: { projectId },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, parentId: true, authorId: true, authorName: true, body: true, createdAt: true, acknowledged: true, acknowledgedAt: true },
+    });
+    return NextResponse.json(comments);
+  }
+
+  if (userId) {
+    // Authenticated commenter — return their root comments + replies to their root comments + their replies
+    const myRootComments = await prisma.comment.findMany({
+      where: { projectId, parentId: null, authorId: userId },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, parentId: true, authorId: true, authorName: true, body: true, createdAt: true, acknowledged: true, acknowledgedAt: true },
+    });
+    const myRootIds = myRootComments.map((c) => c.id);
+    const replies = myRootIds.length > 0
+      ? await prisma.comment.findMany({
+          where: { projectId, parentId: { in: myRootIds } },
+          orderBy: { createdAt: "asc" },
+          select: { id: true, parentId: true, authorId: true, authorName: true, body: true, createdAt: true, acknowledged: true, acknowledgedAt: true },
+        })
+      : [];
+    // Also include threads they replied to
+    const myReplies = await prisma.comment.findMany({
+      where: { projectId, parentId: { not: null }, authorId: userId, parentId_not: { in: myRootIds } },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, parentId: true, authorId: true, authorName: true, body: true, createdAt: true, acknowledged: true, acknowledgedAt: true },
+    }).catch(() => []);
+    const extraParentIds = [...new Set(myReplies.map((r) => r.parentId).filter(Boolean) as string[])];
+    const extraParents = extraParentIds.length > 0
+      ? await prisma.comment.findMany({
+          where: { id: { in: extraParentIds } },
+          select: { id: true, parentId: true, authorId: true, authorName: true, body: true, createdAt: true, acknowledged: true, acknowledgedAt: true },
+        })
+      : [];
+    const all = [...myRootComments, ...replies, ...myReplies, ...extraParents];
+    const deduped = Array.from(new Map(all.map((c) => [c.id, c])).values())
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    return NextResponse.json(deduped);
+  }
+
+  // Unauthenticated guests see nothing
+  return NextResponse.json([]);
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
+  const { userId } = await auth();
   const { authorName, body, parentId } = await req.json();
   if (!authorName?.trim() || !body?.trim()) {
     return NextResponse.json({ error: "Name and body required" }, { status: 400 });
@@ -20,11 +71,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ project
   const project = await prisma.project.findUnique({ where: { id: projectId }, select: { id: true } });
   if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
 
-  // Validate parentId if provided
   if (parentId) {
     const parent = await prisma.comment.findUnique({ where: { id: parentId }, select: { id: true, parentId: true } });
     if (!parent || parent.parentId) {
-      // Only allow one level of nesting (replies to replies not allowed)
       return NextResponse.json({ error: "Invalid parent" }, { status: 400 });
     }
   }
@@ -33,10 +82,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ project
     data: {
       projectId,
       parentId: parentId ?? null,
+      authorId: userId ?? null,
       authorName: authorName.trim().slice(0, 60),
       body: body.trim().slice(0, 500),
     },
-    select: { id: true, parentId: true, authorName: true, body: true, createdAt: true },
+    select: { id: true, parentId: true, authorId: true, authorName: true, body: true, createdAt: true, acknowledged: true, acknowledgedAt: true },
   });
   return NextResponse.json(comment, { status: 201 });
 }

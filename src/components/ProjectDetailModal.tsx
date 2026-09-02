@@ -14,12 +14,13 @@ interface ProjectDetailModalProps {
   onNotesPinChange?: (pin: string) => void;
   notesPin?: string | null;
   readOnly?: boolean;
+  isOwner?: boolean;
 }
 
 export default function ProjectDetailModal({
   project, onClose, onEdit, onNotesChange,
   onNotesLockChange, onNotesPinChange,
-  notesPin, readOnly = false,
+  notesPin, readOnly = false, isOwner = false,
 }: ProjectDetailModalProps) {
   const [notes, setNotes] = useState("");
   const [notesSaved, setNotesSaved] = useState(false);
@@ -397,7 +398,7 @@ export default function ProjectDetailModal({
           {/* Comments */}
           <div className="mt-6">
             <div className="mb-4" style={{ height: 1, background: "rgba(124,58,237,0.1)" }} />
-            <CommentSection projectId={project.id} />
+            <CommentSection projectId={project.id} isOwner={isOwner} />
           </div>
         </div>
       </div>

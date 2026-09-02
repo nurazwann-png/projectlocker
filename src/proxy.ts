@@ -14,6 +14,7 @@ const isPublicRoute = createRouteMatcher([
   "/icon(.*)",
   "/bg.jpg",
 ]);
+// /admin and /api/admin are always protected (handled by auth.protect() below)
 
 export default clerkMiddleware(async (auth, request) => {
   if (!isPublicRoute(request)) {

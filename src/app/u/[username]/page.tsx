@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { use } from "react";
+import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import type { Project, ProjectStatus } from "@/types/project";
 import type { ProfileData, ProfileLinks, CoverPosition } from "@/hooks/useProfile";
@@ -26,6 +27,7 @@ type ViewMode = "grid" | "list" | "timeline";
 
 export default function PublicProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = use(params);
+  const { user } = useUser();
   const [profile, setProfile] = useState<ProfileData & { username?: string | null }>(EMPTY_PROFILE);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -245,6 +247,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
         onEdit={() => {}}
         onNotesChange={() => {}}
         readOnly
+        isOwner={!!user && user.username === username}
       />
     </div>
   );

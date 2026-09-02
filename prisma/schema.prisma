@@ -46,13 +46,15 @@ model Project {
 }
 
 model Comment {
-  id         String   @id @default(cuid())
-  projectId  String
-  parentId   String?
-  authorId   String?
-  authorName String
-  body       String
-  createdAt  DateTime @default(now())
+  id             String    @id @default(cuid())
+  projectId      String
+  parentId       String?
+  authorId       String?
+  authorName     String
+  body           String
+  acknowledged   Boolean   @default(false)
+  acknowledgedAt DateTime?
+  createdAt      DateTime  @default(now())
 
   @@index([projectId])
   @@index([parentId])
