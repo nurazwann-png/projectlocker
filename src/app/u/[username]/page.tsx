@@ -10,6 +10,7 @@ import ProjectDetailModal from "@/components/ProjectDetailModal";
 import ProfileHeader from "@/components/ProfileHeader";
 import SearchBar, { type SortOption } from "@/components/SearchBar";
 import TagCloud from "@/components/TagCloud";
+import TimelineView from "@/components/TimelineView";
 
 const EMPTY_PROFILE: ProfileData & { username?: string | null } = {
   bio: "",
@@ -20,6 +21,8 @@ const EMPTY_PROFILE: ProfileData & { username?: string | null } = {
   skills: [],
   username: null,
 };
+
+type ViewMode = "grid" | "list" | "timeline";
 
 export default function PublicProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = use(params);
@@ -33,6 +36,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
   const [tagFilter, setTagFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "">("");
   const [detailProject, setDetailProject] = useState<Project | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
 
   useEffect(() => {
     async function load() {
@@ -53,6 +57,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
           skills: (pData.skills as string[]) ?? [],
           username: pData.username ?? username,
         });
+        if (pData.preferredView) setViewMode(pData.preferredView as ViewMode);
         setProjects(Array.isArray(prData) ? prData.map((p: Record<string, unknown>) => ({
           id: p.id as string,
           name: (p.title as string) ?? "",
@@ -152,6 +157,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
         onAvatarChange={() => {}}
         onLinksChange={() => {}}
         onSkillsChange={() => {}}
+        displayName={profile.username ?? username}
         readOnly
       />
 
@@ -175,13 +181,41 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
           <TagCloud projects={projects} activeTag={tagFilter} onTagClick={(t) => setTagFilter(t === tagFilter ? "" : t)} />
         )}
 
-        {/* Projects grid */}
+        {/* Projects — rendered in owner's preferred view mode */}
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <svg className="h-12 w-12 mb-4" style={{ color: "#c4bfe0" }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v8.25m19.5 0A2.25 2.25 0 0 1 19.5 18H4.5a2.25 2.25 0 0 1-2.25-2.25V6.75"/>
             </svg>
             <p className="text-sm font-medium" style={{ color: "#9693b8" }}>{query || tagFilter ? "No projects match your search" : "No projects yet"}</p>
+          </div>
+        ) : viewMode === "timeline" ? (
+          <TimelineView
+            projects={filtered}
+            onCardClick={setDetailProject}
+            onEdit={() => {}}
+          />
+        ) : viewMode === "list" ? (
+          <div className="flex flex-col gap-3">
+            {filtered.map((project) => (
+              <div
+                key={project.id}
+                onClick={() => setDetailProject(project)}
+                className="flex items-center gap-4 rounded-xl px-4 py-3 cursor-pointer transition-all"
+                style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(124,58,237,0.1)", backdropFilter: "blur(8px)" }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.9)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.7)"; }}
+              >
+                {project.thumbnail && (
+                  <img src={project.thumbnail} alt="" className="h-12 w-12 rounded-lg object-cover flex-shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold truncate" style={{ color: "#0d0b1e" }}>{project.name}</p>
+                  {project.description && <p className="text-xs truncate" style={{ color: "#9693b8" }}>{project.description}</p>}
+                </div>
+                <span className="text-xs px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: project.status === "Live" ? "rgba(5,150,105,0.1)" : "rgba(124,58,237,0.08)", color: project.status === "Live" ? "#059669" : "#7c3aed" }}>{project.status}</span>
+              </div>
+            ))}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -19,6 +19,7 @@ model Profile {
   links           Json?
   skills          Json?
   notesPin        String?
+  preferredView   String?  @default("grid")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
@@ -47,10 +48,12 @@ model Project {
 model Comment {
   id         String   @id @default(cuid())
   projectId  String
+  parentId   String?
   authorId   String?
   authorName String
   body       String
   createdAt  DateTime @default(now())
 
   @@index([projectId])
+  @@index([parentId])
 }

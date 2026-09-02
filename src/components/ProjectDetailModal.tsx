@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { Project } from "@/types/project";
 import StatusBadge from "./StatusBadge";
+import CommentSection from "./CommentSection";
 
 interface ProjectDetailModalProps {
   project: Project | null;
@@ -393,6 +394,11 @@ export default function ProjectDetailModal({
               ) : null}
             </div>
           )}
+          {/* Comments */}
+          <div className="mt-6">
+            <div className="mb-4" style={{ height: 1, background: "rgba(124,58,237,0.1)" }} />
+            <CommentSection projectId={project.id} />
+          </div>
         </div>
       </div>
     </div>

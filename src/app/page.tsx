@@ -2,7 +2,8 @@
 
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
-import { UserButton } from "@clerk/nextjs";
+import { UserButton, useUser, useAuth } from "@clerk/nextjs";
+import LandingPage from "@/components/LandingPage";
 import type { Project, ProjectFormData, ProjectStatus } from "@/types/project";
 import { useProjects } from "@/hooks/useProjects";
 import { useProfile } from "@/hooks/useProfile";
@@ -16,15 +17,17 @@ import TagCloud from "@/components/TagCloud";
 import TimelineView from "@/components/TimelineView";
 
 export default function DashboardPage() {
+  const { isSignedIn, isLoaded } = useAuth();
+  const { user } = useUser();
   const { projects, hydrated, addProject, updateProject, updateNotes, updateNotesLock, togglePin, deleteProject, importProjects } = useProjects();
-  const { profile, hydrated: profileHydrated, setBio, setCover, setCoverPosition, setAvatar, setLinks, setSkills, setUsername, setNotesPin } = useProfile();
+  const { profile, hydrated: profileHydrated, setBio, setCover, setCoverPosition, setAvatar, setLinks, setSkills, setUsername, setNotesPin, setPreferredView } = useProfile();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "">("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<"grid" | "list" | "timeline">("grid");
+  const [viewMode, setViewModeState] = useState<"grid" | "list" | "timeline">("grid");
   const [tagFilter, setTagFilter] = useState<string>("");
   const [detailProject, setDetailProject] = useState<Project | null>(null);
   const [sort, setSort] = useState<SortOption>("newest");
@@ -36,6 +39,19 @@ export default function DashboardPage() {
   const prevCountRef = useRef(0);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync viewMode from profile once loaded
+  useEffect(() => {
+    if (profileHydrated && profile.preferredView) {
+      setViewModeState(profile.preferredView);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileHydrated]);
+
+  function setViewMode(mode: "grid" | "list" | "timeline") {
+    setViewModeState(mode);
+    setPreferredView(mode);
+  }
 
   // Milestone toast on project count change
   useEffect(() => {
@@ -173,6 +189,8 @@ export default function DashboardPage() {
     e.target.value = "";
   }
 
+  if (isLoaded && !isSignedIn) return <LandingPage />;
+
   return (
     <div className="min-h-screen" style={{
       backgroundImage: "url('/bg.jpg')",
@@ -211,6 +229,7 @@ export default function DashboardPage() {
           onLinksChange={setLinks}
           onSkillsChange={setSkills}
           onUsernameChange={setUsername}
+          displayName={user?.fullName ?? user?.username ?? undefined}
         />
       )}
 
@@ -511,15 +530,16 @@ export default function DashboardPage() {
               return (
                 <div
                   key={project.id}
-                  className="card-enter flex items-center gap-4 rounded-xl px-4 py-3 transition-colors"
+                  className="card-enter flex items-center gap-4 rounded-xl px-4 py-3 transition-colors cursor-pointer"
                   style={{ animationDelay: `${i * 50}ms`, background: "#ffffff", border: "1px solid rgba(124,58,237,0.1)", boxShadow: "0 1px 6px rgba(124,58,237,0.04)" }}
+                  onClick={() => !bulkMode && setDetailProject(project)}
                   onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(124,58,237,0.3)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "0 4px 16px rgba(124,58,237,0.1)"; }}
                   onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(124,58,237,0.1)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "0 1px 6px rgba(124,58,237,0.04)"; }}
                 >
                   {/* Bulk checkbox */}
                   {bulkMode && (
                     <button
-                      onClick={() => toggleSelected(project.id)}
+                      onClick={(e) => { e.stopPropagation(); toggleSelected(project.id); }}
                       className="flex-shrink-0 flex h-5 w-5 items-center justify-center rounded-full transition-all"
                       style={selected.has(project.id)
                         ? { background: "#7c3aed", boxShadow: "0 2px 8px rgba(124,58,237,0.4)" }
@@ -555,7 +575,7 @@ export default function DashboardPage() {
                   {/* Actions */}
                   <div className="flex items-center gap-1 flex-shrink-0">
                     <button
-                      onClick={() => togglePin(project.id)}
+                      onClick={(e) => { e.stopPropagation(); togglePin(project.id); }}
                       className="rounded-lg p-1.5 transition-colors"
                       title={project.pinned ? "Unpin" : "Pin (max 3)"}
                       style={project.pinned ? { color: "#7c3aed", background: "rgba(124,58,237,0.1)" } : { color: "#9693b8" }}
@@ -567,7 +587,7 @@ export default function DashboardPage() {
                       </svg>
                     </button>
                     <button
-                      onClick={() => openEditModal(project)}
+                      onClick={(e) => { e.stopPropagation(); openEditModal(project); }}
                       className="rounded-lg p-1.5 transition-colors"
                       style={{ color: "#9693b8" }}
                       onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#7c3aed"; (e.currentTarget as HTMLButtonElement).style.background = "rgba(124,58,237,0.1)"; }}
@@ -578,7 +598,7 @@ export default function DashboardPage() {
                       </svg>
                     </button>
                     <button
-                      onClick={() => setDeleteConfirmId(project.id)}
+                      onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(project.id); }}
                       className="rounded-lg p-1.5 transition-colors"
                       style={{ color: "#9693b8" }}
                       onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#dc2626"; (e.currentTarget as HTMLButtonElement).style.background = "rgba(220,38,38,0.08)"; }}

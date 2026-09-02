@@ -1,8 +1,13 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 const isPublicRoute = createRouteMatcher([
+  "/",
+  "/landing(.*)",
   "/sign-in(.*)",
   "/sign-up(.*)",
+  "/u/(.*)",
+  "/community(.*)",
+  "/api/public/(.*)",
   // PWA static assets — must be publicly accessible for install to work
   "/manifest.json",
   "/sw.js",

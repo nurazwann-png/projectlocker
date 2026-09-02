@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { Project } from "@/types/project";
 
 interface TagCloudProps {
@@ -22,6 +23,8 @@ function tagColor(tag: string): string {
 }
 
 export default function TagCloud({ projects, activeTag, onTagClick }: TagCloudProps) {
+  const [open, setOpen] = useState(true);
+
   const counts = new Map<string, number>();
   for (const p of projects) {
     for (const t of p.techStack) counts.set(t, (counts.get(t) ?? 0) + 1);
@@ -32,48 +35,72 @@ export default function TagCloud({ projects, activeTag, onTagClick }: TagCloudPr
 
   return (
     <div
-      className="mb-6 rounded-2xl p-5"
+      className="mb-6 rounded-2xl"
       style={{ background: "#ffffff", border: "1px solid rgba(124,58,237,0.12)", boxShadow: "0 2px 12px rgba(124,58,237,0.06)" }}
     >
-      <div className="mb-3 flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#9693b8", fontFamily: "'Syne', system-ui, sans-serif" }}>Tech Tags</p>
-        {activeTag && (
-          <button onClick={() => onTagClick("")} className="text-xs font-medium transition-colors" style={{ color: "#7c3aed" }}>
-            Clear ×
-          </button>
-        )}
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {sorted.map(([tag, count]) => {
-          const color = tagColor(tag);
-          const isActive = activeTag === tag;
-          const weight = count / max;
-          const fontSize = 10 + Math.round(weight * 5);
-          return (
-            <button
-              key={tag}
-              onClick={() => onTagClick(isActive ? "" : tag)}
-              className="inline-flex items-center gap-1 rounded-full px-3 py-1 transition-all"
-              style={{
-                fontSize,
-                fontWeight: 600,
-                color: isActive ? "#ffffff" : color,
-                background: isActive ? color : `${color}12`,
-                border: `1px solid ${color}${isActive ? "ff" : "30"}`,
-                boxShadow: isActive ? `0 2px 12px ${color}40` : "none",
-              }}
+      {/* Header — always visible, clicking toggles */}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between px-5 py-3 transition-colors"
+        style={{ borderRadius: open ? "1rem 1rem 0 0" : "1rem" }}
+      >
+        <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#9693b8", fontFamily: "'Syne', system-ui, sans-serif" }}>
+          Tech Tags <span style={{ color: "#c4bfe0", fontWeight: 400 }}>({sorted.length})</span>
+        </p>
+        <div className="flex items-center gap-3">
+          {activeTag && (
+            <span
+              onClick={(e) => { e.stopPropagation(); onTagClick(""); }}
+              className="text-xs font-medium cursor-pointer transition-colors"
+              style={{ color: "#7c3aed" }}
             >
-              {tag}
-              <span
-                className="rounded-full px-1 text-[9px]"
-                style={{ background: isActive ? "rgba(255,255,255,0.25)" : `${color}18`, color: isActive ? "#fff" : color }}
+              Clear ×
+            </span>
+          )}
+          <svg
+            className="h-4 w-4 transition-transform"
+            style={{ color: "#9693b8", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
+            viewBox="0 0 20 20" fill="currentColor"
+          >
+            <path fillRule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
+          </svg>
+        </div>
+      </button>
+
+      {/* Tags — collapsible */}
+      {open && (
+        <div className="flex flex-wrap gap-2 px-5 pb-4">
+          {sorted.map(([tag, count]) => {
+            const color = tagColor(tag);
+            const isActive = activeTag === tag;
+            const weight = count / max;
+            const fontSize = 10 + Math.round(weight * 5);
+            return (
+              <button
+                key={tag}
+                onClick={() => onTagClick(isActive ? "" : tag)}
+                className="inline-flex items-center gap-1 rounded-full px-3 py-1 transition-all"
+                style={{
+                  fontSize,
+                  fontWeight: 600,
+                  color: isActive ? "#ffffff" : color,
+                  background: isActive ? color : `${color}12`,
+                  border: `1px solid ${color}${isActive ? "ff" : "30"}`,
+                  boxShadow: isActive ? `0 2px 12px ${color}40` : "none",
+                }}
               >
-                {count}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+                {tag}
+                <span
+                  className="rounded-full px-1 text-[9px]"
+                  style={{ background: isActive ? "rgba(255,255,255,0.25)" : `${color}18`, color: isActive ? "#fff" : color }}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

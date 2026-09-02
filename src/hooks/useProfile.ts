@@ -23,6 +23,7 @@ export interface ProfileData {
   skills: string[];
   username?: string | null;
   notesPin?: string | null;
+  preferredView?: "grid" | "list" | "timeline";
 }
 
 const DEFAULT_BIO = "Full-Stack Developer · Building things that matter";
@@ -83,6 +84,7 @@ export function useProfile() {
           skills: (row.skills as string[]) ?? DEFAULT_SKILLS,
           username: (row.username as string) ?? null,
           notesPin: (row.notesPin as string) ?? null,
+          preferredView: ((row.preferredView as string) ?? "grid") as "grid" | "list" | "timeline",
         });
       })
       .catch(() => {
@@ -95,6 +97,7 @@ export function useProfile() {
           skills: DEFAULT_SKILLS,
           username: null,
           notesPin: null,
+          preferredView: "grid",
         });
       })
       .finally(() => setHydrated(true));
@@ -144,5 +147,14 @@ export function useProfile() {
     setProfile((p) => ({ ...p, notesPin: pin }));
   }, []);
 
-  return { profile, hydrated, setBio, setCover, setCoverPosition, setAvatar, setLinks, setSkills, setUsername, setNotesPin };
+  const setPreferredView = useCallback((view: "grid" | "list" | "timeline") => {
+    setProfile((p) => ({ ...p, preferredView: view }));
+    fetch("/api/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ preferredView: view }),
+    }).catch(() => {});
+  }, []);
+
+  return { profile, hydrated, setBio, setCover, setCoverPosition, setAvatar, setLinks, setSkills, setUsername, setNotesPin, setPreferredView };
 }

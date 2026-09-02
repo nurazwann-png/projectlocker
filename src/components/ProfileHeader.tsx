@@ -624,7 +624,7 @@ export default function ProfileHeader({
 
         <div className="mt-3">
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight" style={{ color: "#ffffff", fontFamily: "'Syne', system-ui, sans-serif", textShadow: "0 1px 8px rgba(0,0,0,0.5)" }}>{displayName ?? "Nurazwann Ismail"}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight" style={{ color: "#ffffff", fontFamily: "'Syne', system-ui, sans-serif", textShadow: "0 1px 8px rgba(0,0,0,0.5)" }}>{displayName ?? "Anonymous"}</h1>
             <div className="flex items-center gap-1 ml-1">
               {profile.links.github && (
                 <a href={profile.links.github} target="_blank" rel="noopener noreferrer"
