@@ -15,6 +15,12 @@ export async function PUT(req: Request) {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
+  // Validate username: alphanumeric + hyphens only, 3-30 chars
+  if (body.username !== undefined) {
+    if (body.username !== null && !/^[a-z0-9-]{3,30}$/.test(body.username)) {
+      return NextResponse.json({ error: "Invalid username" }, { status: 400 });
+    }
+  }
   const profile = await prisma.profile.upsert({
     where: { userId },
     update: body,

@@ -21,6 +21,7 @@ export interface ProfileData {
   avatar: string | null;
   links: ProfileLinks;
   skills: string[];
+  username?: string | null;
 }
 
 const DEFAULT_BIO = "Full-Stack Developer · Building things that matter";
@@ -45,6 +46,7 @@ export function useProfile() {
     avatar: null,
     links: {},
     skills: DEFAULT_SKILLS,
+    username: null,
   });
   const [hydrated, setHydrated] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -78,6 +80,7 @@ export function useProfile() {
           avatar: (row.avatarUrl as string) ?? null,
           links: (row.links as ProfileLinks) ?? {},
           skills: (row.skills as string[]) ?? DEFAULT_SKILLS,
+          username: (row.username as string) ?? null,
         });
       })
       .catch(() => {
@@ -88,6 +91,7 @@ export function useProfile() {
           avatar: null,
           links: {},
           skills: DEFAULT_SKILLS,
+          username: null,
         });
       })
       .finally(() => setHydrated(true));
@@ -129,5 +133,9 @@ export function useProfile() {
     setProfile((p) => { const next = { ...p, skills }; persistToApi({ ...next, coverUrl: p.cover, avatarUrl: p.avatar }); return next; });
   }, [persistToApi]);
 
-  return { profile, hydrated, setBio, setCover, setCoverPosition, setAvatar, setLinks, setSkills };
+  const setUsername = useCallback((username: string) => {
+    setProfile((p) => ({ ...p, username }));
+  }, []);
+
+  return { profile, hydrated, setBio, setCover, setCoverPosition, setAvatar, setLinks, setSkills, setUsername };
 }

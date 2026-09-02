@@ -16,7 +16,7 @@ import TimelineView from "@/components/TimelineView";
 
 export default function DashboardPage() {
   const { projects, hydrated, addProject, updateProject, updateNotes, togglePin, deleteProject, importProjects } = useProjects();
-  const { profile, hydrated: profileHydrated, setBio, setCover, setCoverPosition, setAvatar, setLinks, setSkills } = useProfile();
+  const { profile, hydrated: profileHydrated, setBio, setCover, setCoverPosition, setAvatar, setLinks, setSkills, setUsername } = useProfile();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
@@ -197,6 +197,7 @@ export default function DashboardPage() {
           onAvatarChange={setAvatar}
           onLinksChange={setLinks}
           onSkillsChange={setSkills}
+          onUsernameChange={setUsername}
         />
       )}
 

@@ -5,7 +5,7 @@ import type { ProfileData, ProfileLinks, CoverPosition } from "@/hooks/useProfil
 import type { Project } from "@/types/project";
 
 interface ProfileHeaderProps {
-  profile: ProfileData;
+  profile: ProfileData & { username?: string | null };
   projects: Project[];
   onBioChange: (bio: string) => void;
   onCoverChange: (dataUrl: string | null) => void;
@@ -13,6 +13,9 @@ interface ProfileHeaderProps {
   onAvatarChange: (dataUrl: string | null) => void;
   onLinksChange: (links: ProfileLinks) => void;
   onSkillsChange: (skills: string[]) => void;
+  onUsernameChange?: (username: string) => void;
+  readOnly?: boolean;
+  displayName?: string;
 }
 
 function useTypewriter(text: string, speed = 22) {
@@ -250,6 +253,9 @@ export default function ProfileHeader({
   onAvatarChange,
   onLinksChange,
   onSkillsChange,
+  onUsernameChange,
+  readOnly = false,
+  displayName,
 }: ProfileHeaderProps) {
   const coverInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -263,6 +269,10 @@ export default function ProfileHeader({
   const [editingCover, setEditingCover] = useState(false);
   const [coverUploading, setCoverUploading] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [editingUsername, setEditingUsername] = useState(false);
+  const [usernameDraft, setUsernameDraft] = useState(profile.username ?? "");
+  const [usernameError, setUsernameError] = useState("");
+  const [copiedUrl, setCopiedUrl] = useState(false);
 
   const total = projects.length;
   const live = projects.filter((p) => p.status === "Live").length;
@@ -309,6 +319,32 @@ export default function ProfileHeader({
   function saveLinks() {
     onLinksChange(linksDraft);
     setEditingLinks(false);
+  }
+
+  async function saveUsername() {
+    const val = usernameDraft.trim().toLowerCase();
+    if (!val) { setUsernameError("Username cannot be empty"); return; }
+    if (!/^[a-z0-9-]{3,30}$/.test(val)) { setUsernameError("3–30 chars, lowercase letters, numbers, hyphens only"); return; }
+    setUsernameError("");
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: val }),
+      });
+      if (res.status === 400) { setUsernameError("That username is already taken"); return; }
+      onUsernameChange?.(val);
+      setEditingUsername(false);
+    } catch {
+      setUsernameError("Failed to save. Try again.");
+    }
+  }
+
+  function copyShareUrl() {
+    if (!profile.username) return;
+    navigator.clipboard.writeText(`${window.location.origin}/u/${profile.username}`);
+    setCopiedUrl(true);
+    setTimeout(() => setCopiedUrl(false), 2000);
   }
 
   const coverImgStyle: React.CSSProperties = profile.cover
@@ -491,7 +527,7 @@ export default function ProfileHeader({
           </svg>
         )}
 
-        <div
+        {!readOnly && <div
           className="absolute inset-0 flex items-center justify-center gap-3 opacity-0 group-hover/cover:opacity-100 transition-opacity"
           style={{ background: "rgba(14,11,30,0.4)" }}
         >
@@ -539,18 +575,18 @@ export default function ProfileHeader({
               Remove
             </button>
           )}
-        </div>
-        <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverChange} />
+        </div>}
+        {!readOnly && <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverChange} />}
       </div>
 
       {/* Avatar + profile info */}
       <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
 
         <div
-          className="relative w-20 h-20 sm:w-24 sm:h-24 cursor-pointer group/avatar"
+          className={`relative w-20 h-20 sm:w-24 sm:h-24 ${!readOnly ? "cursor-pointer group/avatar" : ""}`}
           style={{ marginTop: "-40px", zIndex: 20 }}
-          onClick={() => !avatarUploading && avatarInputRef.current?.click()}
-          title="Click to change avatar"
+          onClick={() => !readOnly && !avatarUploading && avatarInputRef.current?.click()}
+          title={readOnly ? undefined : "Click to change avatar"}
         >
           <div
             className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden flex items-center justify-center text-xl sm:text-2xl font-bold"
@@ -566,27 +602,29 @@ export default function ProfileHeader({
               : <span>NI</span>
             }
           </div>
-          <div
-            className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-all duration-200"
-            style={{ background: "rgba(14,11,30,0.5)" }}
-          >
-            {avatarUploading ? (
-              <svg className="h-5 w-5 text-white animate-spin" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-              </svg>
-            ) : (
-              <svg className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M1 8a2 2 0 0 1 2-2h.93a2 2 0 0 0 1.664-.89l.812-1.22A2 2 0 0 1 8.07 3h3.86a2 2 0 0 1 1.664.89l.812 1.22A2 2 0 0 0 16.07 6H17a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8Zm13.5 3a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM10 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
-              </svg>
-            )}
-          </div>
-          <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+          {!readOnly && (
+            <div
+              className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-all duration-200"
+              style={{ background: "rgba(14,11,30,0.5)" }}
+            >
+              {avatarUploading ? (
+                <svg className="h-5 w-5 text-white animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                </svg>
+              ) : (
+                <svg className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M1 8a2 2 0 0 1 2-2h.93a2 2 0 0 0 1.664-.89l.812-1.22A2 2 0 0 1 8.07 3h3.86a2 2 0 0 1 1.664.89l.812 1.22A2 2 0 0 0 16.07 6H17a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8Zm13.5 3a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM10 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
+                </svg>
+              )}
+            </div>
+          )}
+          {!readOnly && <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />}
         </div>
 
         <div className="mt-3">
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight" style={{ color: "#ffffff", fontFamily: "'Syne', system-ui, sans-serif", textShadow: "0 1px 8px rgba(0,0,0,0.5)" }}>Nurazwann Ismail</h1>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight" style={{ color: "#ffffff", fontFamily: "'Syne', system-ui, sans-serif", textShadow: "0 1px 8px rgba(0,0,0,0.5)" }}>{displayName ?? "Nurazwann Ismail"}</h1>
             <div className="flex items-center gap-1 ml-1">
               {profile.links.github && (
                 <a href={profile.links.github} target="_blank" rel="noopener noreferrer"
@@ -624,7 +662,7 @@ export default function ProfileHeader({
                   </svg>
                 </a>
               )}
-              <button
+              {!readOnly && <button
                 onClick={() => { setLinksDraft(profile.links); setEditingLinks(true); }}
                 className="rounded-lg p-1.5 transition-colors"
                 style={{ color: "#c4bfe0" }}
@@ -635,7 +673,7 @@ export default function ProfileHeader({
                 <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                   <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
                 </svg>
-              </button>
+              </button>}
             </div>
           </div>
 
@@ -661,7 +699,7 @@ export default function ProfileHeader({
                     <span className="inline-block w-0.5 h-3.5 ml-0.5 align-middle animate-pulse" style={{ background: "#a78bfa" }} />
                   )}
                 </p>
-                <button
+                {!readOnly && <button
                   onClick={() => { setBioDraft(profile.bio); setEditingBio(true); }}
                   className="shrink-0 rounded p-0.5 transition-colors"
                   style={{ color: "rgba(255,255,255,0.4)" }}
@@ -672,10 +710,55 @@ export default function ProfileHeader({
                   <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                     <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
                   </svg>
-                </button>
+                </button>}
               </>
             )}
           </div>
+        </div>
+
+        {/* Username / share URL */}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {profile.username ? (
+            <>
+              <button
+                onClick={copyShareUrl}
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-mono font-semibold transition-all"
+                style={{ background: "rgba(5,150,105,0.2)", color: "#34d399", border: "1px solid rgba(52,211,153,0.35)" }}
+                title="Copy public profile link"
+              >
+                <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M12.232 4.232a2.5 2.5 0 0 1 3.536 3.536l-1.225 1.224a.75.75 0 0 0 1.061 1.06l1.224-1.224a4 4 0 0 0-5.656-5.656l-3 3a4 4 0 0 0 .225 5.865.75.75 0 0 0 .977-1.138 2.5 2.5 0 0 1-.142-3.667l3-3Z" />
+                  <path d="M11.603 7.963a.75.75 0 0 0-.977 1.138 2.5 2.5 0 0 1 .142 3.667l-3 3a2.5 2.5 0 0 1-3.536-3.536l1.225-1.224a.75.75 0 0 0-1.061-1.06l-1.224 1.224a4 4 0 1 0 5.656 5.656l3-3a4 4 0 0 0-.225-5.865Z" />
+                </svg>
+                {copiedUrl ? "Copied!" : `/u/${profile.username}`}
+              </button>
+              {!readOnly && (
+                <button
+                  onClick={() => { setUsernameDraft(profile.username ?? ""); setEditingUsername(true); }}
+                  className="text-xs transition-colors"
+                  style={{ color: "rgba(200,190,255,0.5)" }}
+                  title="Edit username"
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#a78bfa"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(200,190,255,0.5)"; }}
+                >
+                  Edit
+                </button>
+              )}
+            </>
+          ) : !readOnly ? (
+            <button
+              onClick={() => { setUsernameDraft(""); setEditingUsername(true); }}
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-all"
+              style={{ background: "rgba(124,58,237,0.12)", color: "rgba(200,190,255,0.6)", border: "1px dashed rgba(167,139,250,0.4)" }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#c4b5fd"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(200,190,255,0.6)"; }}
+            >
+              <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+              </svg>
+              Set username to share profile
+            </button>
+          ) : null}
         </div>
 
         {/* Vanity URL chip */}
@@ -734,7 +817,7 @@ export default function ProfileHeader({
                   {skill}
                 </span>
               ))}
-              <button
+              {!readOnly && <button
                 onClick={() => setEditingSkills(true)}
                 className="inline-flex items-center rounded-md px-2 py-0.5 text-xs transition-colors"
                 style={{ background: "transparent", color: "rgba(200,190,255,0.55)", border: "1px dashed rgba(200,190,255,0.3)" }}
@@ -742,11 +825,11 @@ export default function ProfileHeader({
                 onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(200,190,255,0.55)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(200,190,255,0.3)"; }}
               >
                 + Edit
-              </button>
+              </button>}
             </div>
           </div>
         )}
-        {profile.skills.length === 0 && (
+        {profile.skills.length === 0 && !readOnly && (
           <button
             onClick={() => setEditingSkills(true)}
             className="mt-4 inline-flex items-center gap-1.5 text-xs transition-colors"
@@ -786,6 +869,38 @@ export default function ProfileHeader({
             <div className="mt-5 flex justify-end gap-3">
               <button onClick={() => setEditingLinks(false)} className="px-4 py-2 text-sm rounded-xl transition-colors" style={{ background: "rgba(124,58,237,0.05)", color: "#5b5880", border: "1px solid rgba(124,58,237,0.15)" }}>Cancel</button>
               <button onClick={saveLinks} className="btn-gradient px-4 py-2 text-sm font-semibold text-white rounded-xl">Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Username edit modal */}
+      {editingUsername && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" aria-modal="true">
+          <div className="absolute inset-0" style={{ background: "rgba(14,11,30,0.5)", backdropFilter: "blur(12px)" }} onClick={() => { setEditingUsername(false); setUsernameError(""); }} />
+          <div className="relative z-10 w-full max-w-sm rounded-2xl p-6"
+            style={{ background: "#ffffff", border: "1px solid rgba(124,58,237,0.2)", boxShadow: "0 8px 40px rgba(124,58,237,0.12), 0 2px 12px rgba(0,0,0,0.08)" }}>
+            <h3 className="text-base font-bold mb-1" style={{ color: "#0d0b1e", fontFamily: "'Syne', system-ui, sans-serif" }}>Set Username</h3>
+            <p className="text-xs mb-4" style={{ color: "#9693b8" }}>Your public profile will be at <span className="font-mono">/u/your-username</span></p>
+            <div className="flex items-center gap-2 rounded-xl px-3 py-2 mb-2" style={{ background: "rgba(124,58,237,0.04)", border: `1px solid ${usernameError ? "rgba(220,38,38,0.5)" : "rgba(124,58,237,0.2)"}` }}>
+              <span className="text-sm" style={{ color: "#9693b8" }}>/u/</span>
+              <input
+                autoFocus
+                type="text"
+                value={usernameDraft}
+                onChange={(e) => { setUsernameDraft(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "")); setUsernameError(""); }}
+                onKeyDown={(e) => { if (e.key === "Enter") saveUsername(); if (e.key === "Escape") { setEditingUsername(false); setUsernameError(""); } }}
+                placeholder="your-username"
+                maxLength={30}
+                className="flex-1 text-sm outline-none bg-transparent"
+                style={{ color: "#0d0b1e" }}
+              />
+            </div>
+            {usernameError && <p className="text-xs mb-3" style={{ color: "#dc2626" }}>{usernameError}</p>}
+            <p className="text-xs mb-4" style={{ color: "#c4bfe0" }}>3–30 chars · lowercase letters, numbers, hyphens</p>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => { setEditingUsername(false); setUsernameError(""); }} className="px-4 py-2 text-sm rounded-xl" style={{ background: "rgba(124,58,237,0.05)", color: "#5b5880", border: "1px solid rgba(124,58,237,0.15)" }}>Cancel</button>
+              <button onClick={saveUsername} className="btn-gradient px-4 py-2 text-sm font-semibold text-white rounded-xl">Save</button>
             </div>
           </div>
         </div>
