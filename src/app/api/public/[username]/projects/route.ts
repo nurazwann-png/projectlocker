@@ -11,10 +11,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ usernam
     orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
     select: {
       id: true, title: true, description: true, status: true,
-      liveUrl: true, repoUrl: true, techStack: true, tags: true,
+      liveUrl: true, techStack: true, tags: true,
       deploymentDate: true, coverImage: true, pinned: true,
       createdAt: true, updatedAt: true,
-      // notes is intentionally excluded — private to the owner
+      // repoUrl and notes are intentionally excluded — private to the owner
     },
   });
   return NextResponse.json(projects);

@@ -363,7 +363,7 @@ export default function ProjectCard({
                 Add URL
               </button>
             ) : null}
-            {hasRepoUrl && (
+            {!readOnly && hasRepoUrl && (
               <a
                 href={project.repoUrl} target="_blank" rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}

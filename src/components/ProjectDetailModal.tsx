@@ -132,18 +132,20 @@ export default function ProjectDetailModal({ project, onClose, onEdit, onNotesCh
                 Deployed {project.deploymentDate || "—"}
               </p>
             </div>
-            <button
-              onClick={() => { onClose(); onEdit(project); }}
-              className="mt-1 flex-shrink-0 inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold transition-colors"
-              style={{ background: "rgba(124,58,237,0.08)", color: "#7c3aed", border: "1px solid rgba(124,58,237,0.25)" }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(124,58,237,0.15)"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(124,58,237,0.08)"; }}
-            >
-              <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-                <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
-              </svg>
-              Edit
-            </button>
+            {!readOnly && (
+              <button
+                onClick={() => { onClose(); onEdit(project); }}
+                className="mt-1 flex-shrink-0 inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold transition-colors"
+                style={{ background: "rgba(124,58,237,0.08)", color: "#7c3aed", border: "1px solid rgba(124,58,237,0.25)" }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(124,58,237,0.15)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(124,58,237,0.08)"; }}
+              >
+                <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
+                </svg>
+                Edit
+              </button>
+            )}
           </div>
 
           {/* Description */}
@@ -179,7 +181,7 @@ export default function ProjectDetailModal({ project, onClose, onEdit, onNotesCh
           )}
 
           {/* Links */}
-          {(liveUrl || repoUrl) && (
+          {(liveUrl || (!readOnly && repoUrl)) && (
             <div className="mb-6 flex flex-wrap gap-3">
               {liveUrl && (
                 <a
@@ -193,7 +195,7 @@ export default function ProjectDetailModal({ project, onClose, onEdit, onNotesCh
                   View Live
                 </a>
               )}
-              {repoUrl && (
+              {!readOnly && repoUrl && (
                 <a
                   href={repoUrl} target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-colors"

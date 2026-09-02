@@ -8,7 +8,6 @@ import ProjectCard from "@/components/ProjectCard";
 import ProjectDetailModal from "@/components/ProjectDetailModal";
 import ProfileHeader from "@/components/ProfileHeader";
 import SearchBar, { type SortOption } from "@/components/SearchBar";
-import ActivityHeatmap from "@/components/ActivityHeatmap";
 import TagCloud from "@/components/TagCloud";
 
 const EMPTY_PROFILE: ProfileData & { username?: string | null } = {
@@ -192,12 +191,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
           </div>
         )}
 
-        {/* Activity heatmap */}
-        {projects.length > 0 && (
-          <div className="mt-10">
-            <ActivityHeatmap projects={projects} />
-          </div>
-        )}
+        {/* Activity heatmap — owner only, not shown on public view */}
       </div>
 
       {/* Detail modal (read-only — onEdit no-op, onNotesChange no-op) */}
