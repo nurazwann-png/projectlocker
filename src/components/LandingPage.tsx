@@ -4,14 +4,12 @@ import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 
 const PROJECTS = [
-  { label: "PL", title: "ProjectLocker", desc: "Dashboard to track and showcase all your deployed projects.", tags: ["Next.js", "Prisma", "Clerk"], from: "#7c3aed", to: "#4f46e5" },
-  { label: "R+", title: "Read+ Admin", desc: "Admin panel for an English learning buddy app used in classrooms.", tags: ["HTML", "FastAPI"], from: "#ec4899", to: "#db2777" },
-  { label: "GB", title: "Grammar Ball", desc: "Interactive English learning game for primary school students.", tags: ["Vue.js", "Node.js", "GCP"], from: "#06b6d4", to: "#0284c7" },
+  { label: "🚀", title: "Your Project", desc: "Log your deployed projects with status, tech stack, and deployment dates.", tags: ["React", "Node.js", "PostgreSQL"], from: "#7c3aed", to: "#4f46e5" },
+  { label: "🌐", title: "Portfolio App", desc: "Share a public profile showcasing all your live projects in one place.", tags: ["Next.js", "Tailwind"], from: "#ec4899", to: "#db2777" },
+  { label: "📦", title: "Side Project", desc: "Keep private notes and track progress — visible only to you.", tags: ["TypeScript", "Prisma"], from: "#06b6d4", to: "#0284c7" },
 ];
 
-const MEMBERS = [
-  { initial: "N", username: "azwannismail", role: "Full-Stack Developer", count: 8, bg: "#7c3aed" },
-];
+const MEMBERS: { initial: string; username: string; role: string; count: number; bg: string }[] = [];
 
 const FEATURES = [
   { icon: "M2 4.25A2.25 2.25 0 0 1 4.25 2h11.5A2.25 2.25 0 0 1 18 4.25v8.5A2.25 2.25 0 0 1 15.75 15h-3.105a3.501 3.501 0 0 1 1.1 1.677A.75.75 0 0 1 13 17.5h-6a.75.75 0 0 1-.745-.823A3.501 3.501 0 0 1 7.355 15H4.25A2.25 2.25 0 0 1 2 12.75v-8.5Z", title: "Track every deploy", desc: "Log projects with status, tech stack, and deployment dates.", accent: "#7c3aed", light: "#f3eeff" },
@@ -126,14 +124,6 @@ export default function LandingPage() {
                 <button style={{ ...syne, fontSize: "0.9rem", fontWeight: 600, color: "#9693b8", background: "transparent", border: "none", cursor: "pointer" }}>Already have an account →</button>
               </SignInButton>
             </div>
-            <div className="mt-8 flex items-center gap-3">
-              <div className="flex">
-                {MEMBERS.map((m, i) => (
-                  <div key={i} className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white" style={{ ...syne, background: m.bg, border: "2.5px solid #fff", marginLeft: i > 0 ? -10 : 0 }}>{m.initial}</div>
-                ))}
-              </div>
-              <p style={{ fontSize: "0.82rem", color: "#9693b8" }}><strong style={{ color: "#4b4869" }}>1 builder</strong> already tracking their work</p>
-            </div>
           </div>
           <div className="hidden items-center justify-center md:flex">
             <CardStack />
@@ -160,30 +150,6 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* Community */}
-      <div style={{ background: "linear-gradient(135deg, #f5f3ff 0%, #fce7f3 50%, #ecfeff 100%)" }}>
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-12 px-6 py-20 md:grid-cols-2 md:items-center lg:px-16">
-          <div>
-            <div style={{ ...syne, fontWeight: 800, fontSize: "clamp(4rem,8vw,6rem)", letterSpacing: "-0.05em", lineHeight: 1, background: "linear-gradient(135deg, #7c3aed, #ec4899)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>1</div>
-            <p style={{ fontSize: "1.05rem", color: "#6b6894", marginTop: "0.5rem", marginBottom: "1.75rem" }}>builder already on ProjectLocker</p>
-            <SignUpButton mode="modal">
-              <Btn primary>Join the community →</Btn>
-            </SignUpButton>
-          </div>
-          <div className="flex flex-col gap-3">
-            {MEMBERS.map((m, i) => (
-              <div key={i} className="flex items-center gap-3 rounded-2xl px-4 py-3" style={{ background: "#fff", border: "1.5px solid #ede9fe", boxShadow: "0 2px 12px rgba(124,58,237,0.06)" }}>
-                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white" style={{ ...syne, background: m.bg }}>{m.initial}</div>
-                <div className="min-w-0 flex-1">
-                  <div style={{ ...syne, fontWeight: 700, fontSize: "0.85rem", color: "#0d0b1e" }}>@{m.username}</div>
-                  <div style={{ fontSize: "0.75rem", color: "#9693b8" }}>{m.role}</div>
-                </div>
-                <div style={{ ...syne, fontSize: "0.78rem", fontWeight: 700, color: m.bg, background: m.bg + "15", padding: "0.2rem 0.6rem", borderRadius: 100 }}>{m.count} projects</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
 
       {/* CTA band */}
       <div className="mx-6 my-16 overflow-hidden rounded-3xl lg:mx-16" style={{ background: "linear-gradient(135deg, #7c3aed 0%, #ec4899 50%, #06b6d4 100%)", padding: "clamp(2.5rem,5vw,4rem)" }}>
