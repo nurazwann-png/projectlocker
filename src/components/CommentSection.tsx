@@ -170,7 +170,7 @@ interface CommentRowProps {
   isReply?: boolean;
 }
 
-function CommentRow({ comment, projectId, onReplyPosted, onAcknowledge, isOwner = false, isReply = false }: CommentRowProps) {
+function CommentRow({ comment, projectId, onReplyPosted, onAcknowledge, isOwner = false, isReply = false, currentUserId }: CommentRowProps & { currentUserId?: string | null }) {
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [repliesExpanded, setRepliesExpanded] = useState(false);
   const [acking, setAcking] = useState(false);
@@ -179,8 +179,11 @@ function CommentRow({ comment, projectId, onReplyPosted, onAcknowledge, isOwner 
   async function handleAcknowledge() {
     setAcking(true);
     try {
-      await fetch(`/api/comments/${comment.id}/acknowledge`, { method: "PATCH" });
-      onAcknowledge(comment.id);
+      const res = await fetch(`/api/comments/${comment.id}/acknowledge`, {
+        method: "PATCH",
+        credentials: "include",
+      });
+      if (res.ok) onAcknowledge(comment.id);
     } finally {
       setAcking(false);
     }
@@ -219,8 +222,8 @@ function CommentRow({ comment, projectId, onReplyPosted, onAcknowledge, isOwner 
                 {showReplyForm ? "Cancel" : "↩ Reply"}
               </button>
             )}
-            {/* Acknowledge button — only for owner on top-level comments */}
-            {isOwner && !isReply && (
+            {/* Acknowledge button — only for owner on top-level comments from OTHER people */}
+            {isOwner && !isReply && comment.authorId !== currentUserId && (
               <button
                 onClick={handleAcknowledge}
                 disabled={acking}
@@ -279,6 +282,8 @@ function CommentRow({ comment, projectId, onReplyPosted, onAcknowledge, isOwner 
 
 /* ── main CommentSection ── */
 export default function CommentSection({ projectId, isOwner = false }: CommentSectionProps) {
+  const { user } = useUser();
+  const currentUserId = user?.id ?? null;
   const [tree, setTree] = useState<Comment[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loaded, setLoaded] = useState(false);
@@ -326,9 +331,6 @@ export default function CommentSection({ projectId, isOwner = false }: CommentSe
     );
   }
 
-  // If not owner and no comments visible, show minimal UI
-  const showCommentForm = isOwner || true; // anyone can comment
-
   return (
     <div onClick={(e) => e.stopPropagation()} style={{ borderTop: "1px solid rgba(124,58,237,0.08)" }}>
       {/* Header */}
@@ -345,7 +347,7 @@ export default function CommentSection({ projectId, isOwner = false }: CommentSe
           </svg>
           <span>{loaded ? `${totalCount} comment${totalCount !== 1 ? "s" : ""}` : "…"}</span>
         </button>
-        {showCommentForm && (
+        {true && (
           <button
             onClick={() => setShowForm((v) => !v)}
             className="text-xs font-medium transition-colors"
@@ -377,6 +379,7 @@ export default function CommentSection({ projectId, isOwner = false }: CommentSe
               onReplyPosted={handleReplyPosted}
               onAcknowledge={handleAcknowledge}
               isOwner={isOwner}
+              currentUserId={currentUserId}
             />
           ))}
           {!expanded && hidden > 0 && (

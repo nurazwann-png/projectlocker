@@ -599,7 +599,7 @@ export default function ProfileHeader({
           >
             {profile.avatar
               ? <img src={profile.avatar} alt="Avatar" className="w-full h-full object-cover" />
-              : <span>NI</span>
+              : <span>{displayName ? displayName.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase() : "?"}</span>
             }
           </div>
           {!readOnly && (

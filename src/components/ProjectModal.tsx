@@ -397,7 +397,7 @@ export default function ProjectModal({ isOpen, project, onClose, onSave }: Proje
             </GlassField>
 
             {/* Repo URL */}
-            <GlassField label="Repository URL">
+            <GlassField label="Review Link">
               <input
                 type="url"
                 value={form.repoUrl}

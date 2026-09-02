@@ -5,6 +5,13 @@ import type { Project } from "@/types/project";
 import StatusBadge from "./StatusBadge";
 import CommentSection from "./CommentSection";
 
+interface Viewer {
+  viewerName: string;
+  viewerId: string | null;
+  count: number;
+  lastSeen: string;
+}
+
 interface ProjectDetailModalProps {
   project: Project | null;
   onClose: () => void;
@@ -15,12 +22,23 @@ interface ProjectDetailModalProps {
   notesPin?: string | null;
   readOnly?: boolean;
   isOwner?: boolean;
+  onOpen?: (projectId: string) => void;
+}
+
+function relativeTime(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
 }
 
 export default function ProjectDetailModal({
   project, onClose, onEdit, onNotesChange,
   onNotesLockChange, onNotesPinChange,
-  notesPin, readOnly = false, isOwner = false,
+  notesPin, readOnly = false, isOwner = false, onOpen,
 }: ProjectDetailModalProps) {
   const [notes, setNotes] = useState("");
   const [notesSaved, setNotesSaved] = useState(false);
@@ -39,15 +57,32 @@ export default function ProjectDetailModal({
   const [pinConfirmError, setPinConfirmError] = useState(false);
   const [pinSaving, setPinSaving] = useState(false);
 
+  // Viewers (owner only)
+  const [viewers, setViewers] = useState<Viewer[]>([]);
+  const [totalViews, setTotalViews] = useState(0);
+  const [viewersExpanded, setViewersExpanded] = useState(false);
+
+  // Reset state + fire onOpen when project changes
   useEffect(() => {
-    if (project) {
-      setNotes(project.notes ?? "");
-      setNotesUnlocked(false);
-      setPinInput(""); setPinError(false);
-      setSettingPin(false); setLockAfterPin(false);
-      setPinDraft(""); setPinConfirm(""); setPinConfirmError(false);
-    }
+    if (!project) return;
+    setNotes(project.notes ?? "");
+    setNotesUnlocked(false);
+    setPinInput(""); setPinError(false);
+    setSettingPin(false); setLockAfterPin(false);
+    setPinDraft(""); setPinConfirm(""); setPinConfirmError(false);
+    setViewers([]); setTotalViews(0); setViewersExpanded(false);
+    onOpen?.(project.id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id]);
+
+  // Fetch viewers whenever project or isOwner changes (isOwner may resolve after mount)
+  useEffect(() => {
+    if (!project || !isOwner) return;
+    fetch(`/api/projects/${project.id}/views`, { credentials: "include" })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data) { setViewers(data.viewers); setTotalViews(data.totalViews); } })
+      .catch(() => {});
+  }, [project?.id, isOwner]);
 
   const handleNotesChange = useCallback((val: string) => {
     setNotes(val);
@@ -95,11 +130,12 @@ export default function ProjectDetailModal({
     if (pinDraft !== pinConfirm) { setPinConfirmError(true); return; }
     setPinSaving(true);
     try {
-      await fetch("/api/profile", {
+      const res = await fetch("/api/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ notesPin: pinDraft }),
       });
+      if (!res.ok) return;
       onNotesPinChange?.(pinDraft);
       if (lockAfterPin) {
         onNotesLockChange?.(project!.id, true);
@@ -233,7 +269,7 @@ export default function ProjectDetailModal({
                   <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M10 1.944A11.954 11.954 0 0 1 2.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0 1 10 1.944ZM11 14a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm0-7a1 1 0 1 0-2 0v3a1 1 0 1 0 2 0V7Z" clipRule="evenodd" />
                   </svg>
-                  Repository
+                  Review Link
                 </a>
               )}
             </div>
@@ -395,9 +431,54 @@ export default function ProjectDetailModal({
               ) : null}
             </div>
           )}
+          {/* Viewers — owner only */}
+          {isOwner && (
+            <div className="mt-4">
+              <div style={{ height: 1, background: "rgba(124,58,237,0.08)" }} />
+              <button
+                onClick={() => setViewersExpanded((v) => !v)}
+                className="w-full flex items-center justify-between px-5 py-3 text-xs transition-colors"
+                style={{ color: "#9693b8", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#7c3aed"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#9693b8"; }}
+              >
+                <div className="flex items-center gap-1.5">
+                  <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" />
+                    <path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 0 1 0-1.186A10.004 10.004 0 0 1 10 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0 1 10 17c-4.257 0-7.893-2.66-9.336-6.41ZM14 10a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z" clipRule="evenodd" />
+                  </svg>
+                  <span>{totalViews} view{totalViews !== 1 ? "s" : ""} · {viewers.length} unique viewer{viewers.length !== 1 ? "s" : ""}</span>
+                </div>
+                <span>{viewersExpanded ? "▴" : "▾"}</span>
+              </button>
+              {viewersExpanded && (
+                <div className="px-5 pb-3 space-y-2">
+                  {viewers.length === 0 ? (
+                    <p className="text-xs" style={{ color: "#c4bfe0" }}>No views yet.</p>
+                  ) : viewers.map((v, i) => (
+                    <div key={i} className="flex items-center gap-3 rounded-xl px-3 py-2" style={{ background: "rgba(124,58,237,0.04)", border: "1px solid rgba(124,58,237,0.08)" }}>
+                      <div className="h-7 w-7 flex-shrink-0 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{ background: v.viewerId ? "#7c3aed" : "#9693b8" }}>
+                        {v.viewerName.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold" style={{ color: "#0d0b1e" }}>
+                          {v.viewerId ? `@${v.viewerName}` : v.viewerName}
+                        </p>
+                        <p className="text-[10px]" style={{ color: "#c4bfe0" }}>Last seen {relativeTime(v.lastSeen)}</p>
+                      </div>
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(124,58,237,0.08)", color: "#7c3aed" }}>
+                        {v.count}×
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Comments */}
-          <div className="mt-6">
-            <div className="mb-4" style={{ height: 1, background: "rgba(124,58,237,0.1)" }} />
+          <div className="mt-2">
+            <div className="mb-0" style={{ height: 1, background: "rgba(124,58,237,0.08)" }} />
             <CommentSection projectId={project.id} isOwner={isOwner} />
           </div>
         </div>

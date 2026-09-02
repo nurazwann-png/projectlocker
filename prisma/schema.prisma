@@ -45,6 +45,17 @@ model Project {
   @@index([userId])
 }
 
+model ProjectView {
+  id          String   @id @default(cuid())
+  projectId   String
+  viewerId    String?
+  viewerName  String
+  createdAt   DateTime @default(now())
+
+  @@index([projectId])
+  @@index([projectId, viewerId])
+}
+
 model Comment {
   id             String    @id @default(cuid())
   projectId      String

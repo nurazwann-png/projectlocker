@@ -8,13 +8,14 @@ const isPublicRoute = createRouteMatcher([
   "/u/(.*)",
   "/community(.*)",
   "/api/public/(.*)",
+  "/api/admin/(.*)",
+  "/admin",
   // PWA static assets — must be publicly accessible for install to work
   "/manifest.json",
   "/sw.js",
   "/icon(.*)",
   "/bg.jpg",
 ]);
-// /admin and /api/admin are always protected (handled by auth.protect() below)
 
 export default clerkMiddleware(async (auth, request) => {
   if (!isPublicRoute(request)) {

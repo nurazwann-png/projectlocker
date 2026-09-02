@@ -28,7 +28,7 @@ type ViewMode = "grid" | "list" | "timeline";
 export default function PublicProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = use(params);
   const { user } = useUser();
-  const [profile, setProfile] = useState<ProfileData & { username?: string | null }>(EMPTY_PROFILE);
+  const [profile, setProfile] = useState<ProfileData & { username?: string | null; ownerId?: string; viewerIsAdmin?: boolean }>(EMPTY_PROFILE);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -58,6 +58,8 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
           links: (pData.links as ProfileLinks) ?? {},
           skills: (pData.skills as string[]) ?? [],
           username: pData.username ?? username,
+          ownerId: pData.ownerId ?? undefined,
+          viewerIsAdmin: pData.viewerIsAdmin ?? false,
         });
         if (pData.preferredView) setViewMode(pData.preferredView as ViewMode);
         setProjects(Array.isArray(prData) ? prData.map((p: Record<string, unknown>) => ({
@@ -247,7 +249,13 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
         onEdit={() => {}}
         onNotesChange={() => {}}
         readOnly
-        isOwner={!!user && user.username === username}
+        isOwner={(!!user && user.id === profile.ownerId) || !!profile.viewerIsAdmin}
+        onOpen={(projectId) => {
+          fetch(`/api/public/projects/${projectId}/view`, {
+            method: "POST",
+            credentials: "include",
+          }).catch(() => {});
+        }}
       />
     </div>
   );
