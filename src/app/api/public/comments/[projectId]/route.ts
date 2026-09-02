@@ -38,9 +38,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ project
           select: { id: true, parentId: true, authorId: true, authorName: true, body: true, createdAt: true, acknowledged: true, acknowledgedAt: true },
         })
       : [];
-    // Also include threads they replied to
+    // Also include threads they replied to (in other root comments)
     const myReplies = await prisma.comment.findMany({
-      where: { projectId, parentId: { not: null }, authorId: userId, parentId_not: { in: myRootIds } },
+      where: {
+        projectId,
+        authorId: userId,
+        parentId: { not: null },
+        NOT: myRootIds.length > 0 ? { parentId: { in: myRootIds } } : undefined,
+      },
       orderBy: { createdAt: "asc" },
       select: { id: true, parentId: true, authorId: true, authorName: true, body: true, createdAt: true, acknowledged: true, acknowledgedAt: true },
     }).catch(() => []);
