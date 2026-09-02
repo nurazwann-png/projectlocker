@@ -33,7 +33,7 @@ function CardStack() {
 
   const pos = ["front", "mid", "back"] as const;
   return (
-    <div className="relative h-[400px] w-[300px] select-none">
+    <div className="relative h-[320px] w-[300px] select-none">
       {PROJECTS.map((p, i) => {
         const posIdx = (i - offset + PROJECTS.length) % PROJECTS.length;
         const styles: Record<string, import("react").CSSProperties> = {
@@ -103,7 +103,7 @@ export default function LandingPage() {
 
       {/* Hero */}
       <div style={{ background: "linear-gradient(160deg, #faf5ff 0%, #fce7f3 35%, #ecfeff 70%, #fffbeb 100%)" }}>
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 px-6 py-16 md:grid-cols-2 md:items-center md:py-28 lg:px-16">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 px-6 py-10 md:grid-cols-2 md:items-center md:py-14 lg:px-16">
           <div>
             <div className="mb-5 inline-flex items-center gap-2 rounded-full px-4 py-1.5" style={{ background: "#7c3aed", color: "#fff" }}>
               <span className="inline-block h-2 w-2 animate-pulse rounded-full" style={{ background: "#a78bfa" }} />
