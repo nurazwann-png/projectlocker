@@ -79,14 +79,17 @@ function tagClass(tag: string): string {
   return ["tag-cyan","tag-blue","tag-violet","tag-emerald","tag-yellow","tag-rose","tag-orange","tag-slate"][idx];
 }
 
-async function uploadThumbnail(file: File): Promise<string> {
-  const form = new FormData();
-  form.append("file", file);
-  form.append("type", "cover");
-  const res = await fetch("/api/upload", { method: "POST", body: form });
-  if (!res.ok) throw new Error("Upload failed");
-  const { url } = await res.json();
-  return url as string;
+async function compressThumbnail(file: File): Promise<string> {
+  const bitmap = await createImageBitmap(file);
+  const maxW = 1280, maxH = 720;
+  const scale = Math.min(1, maxW / bitmap.width, maxH / bitmap.height);
+  const w = Math.round(bitmap.width * scale);
+  const h = Math.round(bitmap.height * scale);
+  const canvas = document.createElement("canvas");
+  canvas.width = w; canvas.height = h;
+  canvas.getContext("2d")!.drawImage(bitmap, 0, 0, w, h);
+  bitmap.close();
+  return canvas.toDataURL("image/jpeg", 0.82);
 }
 
 export default function ProjectCard({
@@ -112,7 +115,7 @@ export default function ProjectCard({
     if (!file || !onThumbnailChange) return;
     setUploading(true);
     try {
-      const url = await uploadThumbnail(file);
+      const url = await compressThumbnail(file);
       onThumbnailChange(project.id, url);
     } catch {
       // silently fail — keep existing thumbnail

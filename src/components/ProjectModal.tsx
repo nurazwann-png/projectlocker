@@ -50,15 +50,17 @@ export default function ProjectModal({ isOpen, project, onClose, onSave }: Proje
     if (!file) return;
     setThumbnailUploading(true);
     try {
-      const form = new FormData();
-      form.append("file", file);
-      form.append("type", "cover");
-      const res = await fetch("/api/upload", { method: "POST", body: form });
-      if (!res.ok) throw new Error("Upload failed");
-      const { url } = await res.json();
-      set("thumbnail", url as string);
+      const bitmap = await createImageBitmap(file);
+      const maxW = 1280, maxH = 720;
+      const scale = Math.min(1, maxW / bitmap.width, maxH / bitmap.height);
+      const w = Math.round(bitmap.width * scale);
+      const h = Math.round(bitmap.height * scale);
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      canvas.getContext("2d")!.drawImage(bitmap, 0, 0, w, h);
+      bitmap.close();
+      set("thumbnail", canvas.toDataURL("image/jpeg", 0.82));
     } catch {
-      // fall back to base64 so the user at least sees something
       const reader = new FileReader();
       reader.onload = () => set("thumbnail", reader.result as string);
       reader.readAsDataURL(file);
@@ -95,14 +97,23 @@ export default function ProjectModal({ isOpen, project, onClose, onSave }: Proje
   }
 
   function handleTagKeyDown(e: KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter" || e.key === ",") { e.preventDefault(); commitTag(); }
+    if (e.key === "Enter" || e.key === ",") { e.preventDefault(); commitTag(tagInput); }
     else if (e.key === "Backspace" && tagInput === "" && form.techStack.length > 0) {
       removeTag(form.techStack[form.techStack.length - 1]);
     }
   }
 
-  function commitTag() {
-    const tag = tagInput.trim().replace(/,$/, "");
+  function handleTagChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const val = e.target.value;
+    if (val.endsWith(",")) {
+      commitTag(val.slice(0, -1));
+    } else {
+      setTagInput(val);
+    }
+  }
+
+  function commitTag(raw: string) {
+    const tag = raw.trim();
     if (tag && !form.techStack.includes(tag)) {
       set("techStack", [...form.techStack, tag]);
       setErrors((prev) => ({ ...prev, techStack: undefined }));
@@ -119,7 +130,7 @@ export default function ProjectModal({ isOpen, project, onClose, onSave }: Proje
       .split(/[,;]+/)
       .map((t) => t.trim())
       .filter((t) => t && !form.techStack.includes(t));
-    const finalTechStack = [...form.techStack, ...pendingTags];
+    const finalTechStack = [...new Set([...form.techStack, ...pendingTags])];
     onSave({ ...form, techStack: finalTechStack });
   }
 
@@ -298,12 +309,23 @@ export default function ProjectModal({ isOpen, project, onClose, onSave }: Proje
                 <input
                   type="text"
                   value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
+                  onChange={handleTagChange}
                   onKeyDown={handleTagKeyDown}
-                  placeholder={form.techStack.length === 0 ? "React, TypeScript… (Enter to add)" : ""}
-                  className="min-w-[8rem] flex-1 bg-transparent text-sm outline-none"
+                  onBlur={() => { if (tagInput.trim()) commitTag(tagInput); }}
+                  placeholder={form.techStack.length === 0 ? "React, TypeScript…" : "Add more…"}
+                  className="min-w-[6rem] flex-1 bg-transparent text-sm outline-none"
                   style={{ color: "#0d0b1e" }}
                 />
+                {tagInput.trim() && (
+                  <button
+                    type="button"
+                    onClick={() => commitTag(tagInput)}
+                    className="shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors"
+                    style={{ background: "rgba(124,58,237,0.12)", color: "#7c3aed", border: "1px solid rgba(124,58,237,0.25)" }}
+                  >
+                    Add
+                  </button>
+                )}
               </div>
             </GlassField>
 
