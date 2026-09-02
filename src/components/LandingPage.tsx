@@ -11,10 +11,6 @@ const PROJECTS = [
 
 const MEMBERS = [
   { initial: "N", username: "azwannismail", role: "Full-Stack Developer", count: 8, bg: "#7c3aed" },
-  { initial: "S", username: "sarah_codes", role: "Frontend Developer", count: 3, bg: "#ec4899" },
-  { initial: "R", username: "rizal_dev", role: "Backend Engineer", count: 4, bg: "#06b6d4" },
-  { initial: "F", username: "faris_ml", role: "ML Engineer", count: 3, bg: "#f59e0b" },
-  { initial: "N", username: "nuha_fullstack", role: "Full-Stack Developer", count: 5, bg: "#10b981" },
 ];
 
 const FEATURES = [
@@ -136,7 +132,7 @@ export default function LandingPage() {
                   <div key={i} className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white" style={{ ...syne, background: m.bg, border: "2.5px solid #fff", marginLeft: i > 0 ? -10 : 0 }}>{m.initial}</div>
                 ))}
               </div>
-              <p style={{ fontSize: "0.82rem", color: "#9693b8" }}><strong style={{ color: "#4b4869" }}>5 builders</strong> already tracking their work</p>
+              <p style={{ fontSize: "0.82rem", color: "#9693b8" }}><strong style={{ color: "#4b4869" }}>1 builder</strong> already tracking their work</p>
             </div>
           </div>
           <div className="hidden items-center justify-center md:flex">
@@ -168,8 +164,8 @@ export default function LandingPage() {
       <div style={{ background: "linear-gradient(135deg, #f5f3ff 0%, #fce7f3 50%, #ecfeff 100%)" }}>
         <div className="mx-auto grid max-w-6xl grid-cols-1 gap-12 px-6 py-20 md:grid-cols-2 md:items-center lg:px-16">
           <div>
-            <div style={{ ...syne, fontWeight: 800, fontSize: "clamp(4rem,8vw,6rem)", letterSpacing: "-0.05em", lineHeight: 1, background: "linear-gradient(135deg, #7c3aed, #ec4899)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>5</div>
-            <p style={{ fontSize: "1.05rem", color: "#6b6894", marginTop: "0.5rem", marginBottom: "1.75rem" }}>builders already on ProjectLocker</p>
+            <div style={{ ...syne, fontWeight: 800, fontSize: "clamp(4rem,8vw,6rem)", letterSpacing: "-0.05em", lineHeight: 1, background: "linear-gradient(135deg, #7c3aed, #ec4899)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>1</div>
+            <p style={{ fontSize: "1.05rem", color: "#6b6894", marginTop: "0.5rem", marginBottom: "1.75rem" }}>builder already on ProjectLocker</p>
             <SignUpButton mode="modal">
               <Btn primary>Join the community →</Btn>
             </SignUpButton>
