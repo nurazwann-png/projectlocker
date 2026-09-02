@@ -9,6 +9,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ usernam
   const projects = await prisma.project.findMany({
     where: { userId: profile.userId },
     orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
+    select: {
+      id: true, title: true, description: true, status: true,
+      liveUrl: true, repoUrl: true, techStack: true, tags: true,
+      deploymentDate: true, coverImage: true, pinned: true,
+      createdAt: true, updatedAt: true,
+      // notes is intentionally excluded — private to the owner
+    },
   });
   return NextResponse.json(projects);
 }

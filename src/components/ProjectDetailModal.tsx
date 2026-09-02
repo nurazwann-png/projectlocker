@@ -9,6 +9,7 @@ interface ProjectDetailModalProps {
   onClose: () => void;
   onEdit: (project: Project) => void;
   onNotesChange: (id: string, notes: string) => void;
+  readOnly?: boolean;
 }
 
 const NOTES_PIN_KEY = "notes-pin";
@@ -19,7 +20,7 @@ function savePin(pin: string) {
   try { localStorage.setItem(NOTES_PIN_KEY, pin); } catch {}
 }
 
-export default function ProjectDetailModal({ project, onClose, onEdit, onNotesChange }: ProjectDetailModalProps) {
+export default function ProjectDetailModal({ project, onClose, onEdit, onNotesChange, readOnly = false }: ProjectDetailModalProps) {
   const [notes, setNotes] = useState("");
   const [notesSaved, setNotesSaved] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -210,10 +211,10 @@ export default function ProjectDetailModal({ project, onClose, onEdit, onNotesCh
           )}
 
           {/* Divider */}
-          <div className="mb-5" style={{ height: 1, background: "rgba(124,58,237,0.1)" }} />
+          {!readOnly && <div className="mb-5" style={{ height: 1, background: "rgba(124,58,237,0.1)" }} />}
 
-          {/* Notes / Journal with PIN lock */}
-          <div>
+          {/* Notes / Journal with PIN lock — owner only */}
+          {!readOnly && <div>
             <div className="mb-2 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" style={{ color: "#7c3aed" }}>
@@ -301,7 +302,7 @@ export default function ProjectDetailModal({ project, onClose, onEdit, onNotesCh
                 <p className="mt-1.5 text-xs" style={{ color: "#9693b8" }}>Auto-saved · stays local on this device</p>
               </>
             )}
-          </div>
+          </div>}
         </div>
       </div>
     </div>

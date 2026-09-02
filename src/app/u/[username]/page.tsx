@@ -93,8 +93,16 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
     return list;
   }, [projects, query, sort, tagFilter]);
 
+  const pageBg: import("react").CSSProperties = {
+    backgroundImage: "url('/bg.jpg')",
+    backgroundSize: "cover",
+    backgroundPosition: "center top",
+    backgroundAttachment: "fixed",
+    backgroundColor: "#eeeaff",
+  };
+
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: "radial-gradient(ellipse at 20% 30%, rgba(124,58,237,0.08) 0%, transparent 60%), radial-gradient(ellipse at 80% 70%, rgba(14,165,233,0.06) 0%, transparent 60%), #f8f7ff" }}>
+    <div className="min-h-screen flex items-center justify-center" style={pageBg}>
       <div className="flex flex-col items-center gap-3">
         <svg className="h-8 w-8 animate-spin text-violet-500" viewBox="0 0 24 24" fill="none">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
@@ -106,7 +114,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
   );
 
   if (notFound) return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: "#f8f7ff" }}>
+    <div className="min-h-screen flex items-center justify-center" style={pageBg}>
       <div className="text-center">
         <p className="text-6xl mb-4">404</p>
         <h1 className="text-2xl font-bold mb-2" style={{ color: "#0d0b1e", fontFamily: "'Syne', system-ui, sans-serif" }}>Profile not found</h1>
@@ -116,10 +124,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
   );
 
   return (
-    <div
-      className="min-h-screen"
-      style={{ background: "radial-gradient(ellipse at 20% 30%, rgba(124,58,237,0.08) 0%, transparent 60%), radial-gradient(ellipse at 80% 70%, rgba(14,165,233,0.06) 0%, transparent 60%), #f8f7ff" }}
-    >
+    <div className="min-h-screen" style={pageBg}>
       {/* "Viewing portfolio" banner */}
       <div className="flex items-center justify-center gap-2 py-2 text-xs font-medium" style={{ background: "rgba(124,58,237,0.08)", borderBottom: "1px solid rgba(124,58,237,0.12)", color: "#7c3aed" }}>
         <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
@@ -201,6 +206,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
         onClose={() => setDetailProject(null)}
         onEdit={() => {}}
         onNotesChange={() => {}}
+        readOnly
       />
     </div>
   );
