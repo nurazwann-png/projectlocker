@@ -37,6 +37,31 @@ function relativeTime(dateStr: string): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
+function NotesContent({ text }: { text: string }) {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  return (
+    <span>
+      {parts.map((part, i) =>
+        urlRegex.test(part) ? (
+          <a
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="break-all underline"
+            style={{ color: "#7c3aed" }}
+          >
+            {part}
+          </a>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </span>
+  );
+}
+
 export default function ProjectDetailModal({
   project, onClose, onEdit, onNotesChange,
   onNotesLockChange, onNotesPinChange,
@@ -296,8 +321,8 @@ export default function ProjectDetailModal({
             ) : project.notes ? (
               <div>
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wider" style={{ color: "#9693b8", fontFamily: "'Syne', system-ui, sans-serif" }}>Notes</p>
-                <div className="rounded-xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap" style={{ background: "rgba(124,58,237,0.03)", border: "1px solid rgba(124,58,237,0.12)", color: "#5b5880" }}>
-                  {project.notes}
+                <div className="rounded-xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap" style={{ background: "rgba(124,58,237,0.03)", border: "1px solid rgba(124,58,237,0.12)", color: "#5b5880", overflowWrap: "break-word" }}>
+                  <NotesContent text={project.notes} />
                 </div>
               </div>
             ) : null
