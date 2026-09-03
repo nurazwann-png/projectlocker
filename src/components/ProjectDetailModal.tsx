@@ -23,6 +23,7 @@ interface ProjectDetailModalProps {
   readOnly?: boolean;
   isOwner?: boolean;
   isAdmin?: boolean;
+  showViewers?: boolean;
   onOpen?: (projectId: string) => void;
 }
 
@@ -39,7 +40,7 @@ function relativeTime(dateStr: string): string {
 export default function ProjectDetailModal({
   project, onClose, onEdit, onNotesChange,
   onNotesLockChange, onNotesPinChange,
-  notesPin, readOnly = false, isOwner = false, isAdmin = false, onOpen,
+  notesPin, readOnly = false, isOwner = false, isAdmin = false, showViewers = false, onOpen,
 }: ProjectDetailModalProps) {
   const [notes, setNotes] = useState("");
   const [notesSaved, setNotesSaved] = useState(false);
@@ -76,14 +77,17 @@ export default function ProjectDetailModal({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id]);
 
-  // Fetch viewers whenever project or isOwner changes (isOwner may resolve after mount)
+  // Fetch viewers whenever project, isOwner, or showViewers changes
   useEffect(() => {
-    if (!project || !isOwner) return;
-    fetch(`/api/projects/${project.id}/views`, { credentials: "include" })
+    if (!project || (!isOwner && !showViewers)) return;
+    const url = isOwner
+      ? `/api/projects/${project.id}/views`
+      : `/api/public/projects/${project.id}/views`;
+    fetch(url, { credentials: "include" })
       .then((r) => r.ok ? r.json() : null)
       .then((data) => { if (data) { setViewers(data.viewers); setTotalViews(data.totalViews); } })
       .catch(() => {});
-  }, [project?.id, isOwner]);
+  }, [project?.id, isOwner, showViewers]);
 
   const handleNotesChange = useCallback((val: string) => {
     setNotes(val);
@@ -432,8 +436,8 @@ export default function ProjectDetailModal({
               ) : null}
             </div>
           )}
-          {/* Viewers — owner only */}
-          {isOwner && (
+          {/* Viewers — owner always; public visitors when showViewers=true */}
+          {(isOwner || showViewers) && (
             <div className="mt-4">
               <div style={{ height: 1, background: "rgba(124,58,237,0.08)" }} />
               <button
