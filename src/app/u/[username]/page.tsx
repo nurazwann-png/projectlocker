@@ -249,7 +249,8 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
         onEdit={() => {}}
         onNotesChange={() => {}}
         readOnly
-        isOwner={(!!user && user.id === profile.ownerId) || !!profile.viewerIsAdmin}
+        isOwner={!!user && user.id === profile.ownerId}
+        isAdmin={!!profile.viewerIsAdmin}
         onOpen={(projectId) => {
           fetch(`/api/public/projects/${projectId}/view`, {
             method: "POST",

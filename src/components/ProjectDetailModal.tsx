@@ -22,6 +22,7 @@ interface ProjectDetailModalProps {
   notesPin?: string | null;
   readOnly?: boolean;
   isOwner?: boolean;
+  isAdmin?: boolean;
   onOpen?: (projectId: string) => void;
 }
 
@@ -38,7 +39,7 @@ function relativeTime(dateStr: string): string {
 export default function ProjectDetailModal({
   project, onClose, onEdit, onNotesChange,
   onNotesLockChange, onNotesPinChange,
-  notesPin, readOnly = false, isOwner = false, onOpen,
+  notesPin, readOnly = false, isOwner = false, isAdmin = false, onOpen,
 }: ProjectDetailModalProps) {
   const [notes, setNotes] = useState("");
   const [notesSaved, setNotesSaved] = useState(false);
@@ -431,8 +432,8 @@ export default function ProjectDetailModal({
               ) : null}
             </div>
           )}
-          {/* Viewers — owner only */}
-          {isOwner && (
+          {/* Viewers — owner or admin */}
+          {(isOwner || isAdmin) && (
             <div className="mt-4">
               <div style={{ height: 1, background: "rgba(124,58,237,0.08)" }} />
               <button
