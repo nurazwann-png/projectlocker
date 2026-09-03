@@ -50,6 +50,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
         if (pRes.status === 404) { setNotFound(true); return; }
         const pData = await pRes.json();
         const prData = await prRes.json();
+        const ownerId: string | undefined = pData.ownerId ?? undefined;
         setProfile({
           bio: pData.bio ?? "",
           cover: pData.coverUrl ?? null,
@@ -58,11 +59,11 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
           links: (pData.links as ProfileLinks) ?? {},
           skills: (pData.skills as string[]) ?? [],
           username: pData.username ?? username,
-          ownerId: pData.ownerId ?? undefined,
+          ownerId,
           viewerIsAdmin: pData.viewerIsAdmin ?? false,
         });
         if (pData.preferredView) setViewMode(pData.preferredView as ViewMode);
-        setProjects(Array.isArray(prData) ? prData.map((p: Record<string, unknown>) => ({
+        const mapped = Array.isArray(prData) ? prData.map((p: Record<string, unknown>) => ({
           id: p.id as string,
           name: (p.title as string) ?? "",
           description: (p.description as string) ?? "",
@@ -78,7 +79,17 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
           pinned: Boolean(p.pinned),
           createdAt: (p.createdAt as string) ?? "",
           updatedAt: (p.updatedAt as string) ?? "",
-        })) : []);
+        })) : [];
+        setProjects(mapped);
+
+        // Record a view for every project on this profile just by visiting the page.
+        // The API skips the owner's own visits server-side.
+        mapped.forEach((p) => {
+          fetch(`/api/public/projects/${p.id}/view`, {
+            method: "POST",
+            credentials: "include",
+          }).then(r => { if (!r.ok) console.error("view record failed", r.status, p.id); }).catch(console.error);
+        });
       } catch {
         setNotFound(true);
       } finally {
@@ -252,12 +263,6 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
         isOwner={!!user && user.id === profile.ownerId}
         isAdmin={!!profile.viewerIsAdmin}
         showViewers
-        onOpen={(projectId) => {
-          fetch(`/api/public/projects/${projectId}/view`, {
-            method: "POST",
-            credentials: "include",
-          }).then(r => { if (!r.ok) console.error("view record failed", r.status); }).catch(console.error);
-        }}
       />
     </div>
   );
