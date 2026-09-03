@@ -163,6 +163,98 @@ function PinGate({ onVerified }: { onVerified: (pin: string) => void }) {
   );
 }
 
+interface MemberProfile {
+  userId: string;
+  username: string | null;
+  bio: string | null;
+  avatarUrl: string | null;
+  createdAt: string;
+  projectCount: number;
+}
+
+/* ── Members section ── */
+function MembersSection({ pinToken }: { pinToken?: string }) {
+  const [members, setMembers] = useState<MemberProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<string | null>(null);
+
+  useEffect(() => {
+    const headers: Record<string, string> = {};
+    if (pinToken) headers["x-admin-pin"] = pinToken;
+    fetch("/api/admin/profiles", { headers, credentials: "include" })
+      .then((r) => r.ok ? r.json() : [])
+      .then(setMembers)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [pinToken]);
+
+  async function handleDelete(userId: string) {
+    setDeleting(userId);
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (pinToken) headers["x-admin-pin"] = pinToken;
+    try {
+      const res = await fetch(`/api/admin/profiles/${userId}`, { method: "DELETE", headers, credentials: "include" });
+      if (res.ok) setMembers((prev) => prev.filter((m) => m.userId !== userId));
+    } finally {
+      setDeleting(null);
+      setConfirm(null);
+    }
+  }
+
+  return (
+    <div className="rounded-2xl p-6" style={{ background: "#fff", border: "1px solid rgba(124,58,237,0.1)" }}>
+      <h2 className="text-sm font-bold uppercase tracking-widest mb-5" style={{ color: "#9693b8", fontFamily: "'Syne', system-ui" }}>Members</h2>
+      {loading ? (
+        <p className="text-sm" style={{ color: "#c4bfe0" }}>Loading…</p>
+      ) : members.length === 0 ? (
+        <p className="text-sm" style={{ color: "#c4bfe0" }}>No members yet.</p>
+      ) : (
+        <div className="space-y-2">
+          {members.map((m) => (
+            <div key={m.userId} className="flex items-center gap-3 rounded-xl px-4 py-3" style={{ background: "rgba(124,58,237,0.03)", border: "1px solid rgba(124,58,237,0.08)" }}>
+              {/* Avatar */}
+              <div className="h-8 w-8 flex-shrink-0 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold text-white" style={{ background: "#7c3aed" }}>
+                {m.avatarUrl ? <img src={m.avatarUrl} alt="" className="h-full w-full object-cover" /> : (m.username ?? "?").charAt(0).toUpperCase()}
+              </div>
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold" style={{ color: "#0d0b1e" }}>@{m.username ?? "—"}</p>
+                <p className="text-[11px]" style={{ color: "#9693b8" }}>{m.projectCount} project{m.projectCount !== 1 ? "s" : ""} · joined {relativeTime(m.createdAt)}</p>
+              </div>
+              {/* Delete */}
+              {confirm === m.userId ? (
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="text-xs" style={{ color: "#dc2626" }}>Delete all data?</span>
+                  <button
+                    onClick={() => handleDelete(m.userId)}
+                    disabled={!!deleting}
+                    className="rounded-lg px-2 py-1 text-xs font-bold"
+                    style={{ background: "#dc2626", color: "#fff", border: "none", opacity: deleting ? 0.6 : 1 }}
+                  >
+                    {deleting === m.userId ? "Deleting…" : "Yes, delete"}
+                  </button>
+                  <button onClick={() => setConfirm(null)} className="text-xs" style={{ color: "#9693b8" }}>Cancel</button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirm(m.userId)}
+                  className="flex-shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all"
+                  style={{ background: "rgba(220,38,38,0.07)", color: "#dc2626", border: "1px solid rgba(220,38,38,0.2)" }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(220,38,38,0.15)"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(220,38,38,0.07)"; }}
+                >
+                  Delete
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Dashboard ── */
 function Dashboard({ pinToken, onForbidden }: { pinToken?: string; onForbidden: () => void }) {
   const [stats, setStats] = useState<Stats | null>(null);
@@ -315,6 +407,9 @@ function Dashboard({ pinToken, onForbidden }: { pinToken?: string; onForbidden: 
           </div>
         )}
       </div>
+
+      {/* Members */}
+      <MembersSection pinToken={pinToken} />
 
       {/* Recent comments */}
       <div className="rounded-2xl p-6" style={{ background: "#fff", border: "1px solid rgba(124,58,237,0.1)" }}>
