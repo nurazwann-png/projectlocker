@@ -65,9 +65,9 @@ function StatChip({ label, count, color }: { label: string; count: number; color
 }
 
 async function compressToDataUrl(file: File, type: "cover" | "avatar"): Promise<string> {
-  const maxW = type === "cover" ? 1280 : 400;
-  const maxH = type === "cover" ? 720 : 400;
-  const quality = 0.80;
+  const maxW = type === "cover" ? 1920 : 400;
+  const maxH = type === "cover" ? 600 : 400;
+  const quality = type === "cover" ? 0.92 : 0.82;
 
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(1, maxW / bitmap.width, maxH / bitmap.height);
