@@ -256,7 +256,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
           fetch(`/api/public/projects/${projectId}/view`, {
             method: "POST",
             credentials: "include",
-          }).catch(() => {});
+          }).then(r => { if (!r.ok) console.error("view record failed", r.status); }).catch(console.error);
         }}
       />
     </div>
