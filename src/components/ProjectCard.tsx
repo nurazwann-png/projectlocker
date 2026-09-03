@@ -161,7 +161,7 @@ export default function ProjectCard({
             className="absolute inset-0 w-full h-full"
             style={{
               objectFit: "cover",
-              objectPosition: "center top",
+              objectPosition: "center",
               transition: "transform 0.4s ease",
             }}
           />
@@ -268,7 +268,13 @@ export default function ProjectCard({
 
         {/* Project name + health ring */}
         <div className="absolute bottom-0 left-0 right-0 px-4 pb-3 flex items-end justify-between gap-2" style={{ zIndex: 20 }}>
-          <h3 className="text-xl font-bold text-white leading-tight drop-shadow-sm" style={{ fontFamily: "'Syne', system-ui, sans-serif" }}>
+          <h3
+            className="font-bold text-white leading-snug drop-shadow-sm line-clamp-2"
+            style={{
+              fontFamily: "'Syne', system-ui, sans-serif",
+              fontSize: project.name.length > 40 ? "0.95rem" : "1.125rem",
+            }}
+          >
             {project.name}
           </h3>
           <div className="flex-shrink-0 relative" title={`Health: ${score}%`}>
