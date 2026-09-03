@@ -23,7 +23,7 @@ function tagColor(tag: string): string {
 }
 
 export default function TagCloud({ projects, activeTag, onTagClick }: TagCloudProps) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   const counts = new Map<string, number>();
   for (const p of projects) {
