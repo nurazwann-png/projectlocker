@@ -18,6 +18,7 @@ interface Comment {
 interface CommentSectionProps {
   projectId: string;
   isOwner?: boolean;
+  onCommentPosted?: () => void;
 }
 
 function hashStr(s: string): number {
@@ -281,7 +282,7 @@ function CommentRow({ comment, projectId, onReplyPosted, onAcknowledge, isOwner 
 }
 
 /* ── main CommentSection ── */
-export default function CommentSection({ projectId, isOwner = false }: CommentSectionProps) {
+export default function CommentSection({ projectId, isOwner = false, onCommentPosted }: CommentSectionProps) {
   const { user } = useUser();
   const currentUserId = user?.id ?? null;
   const [tree, setTree] = useState<Comment[]>([]);
@@ -312,6 +313,7 @@ export default function CommentSection({ projectId, isOwner = false }: CommentSe
     setTotalCount((n) => n + 1);
     setShowForm(false);
     setExpanded(true);
+    onCommentPosted?.();
   }
 
   function handleReplyPosted(reply: Comment, parentId: string) {

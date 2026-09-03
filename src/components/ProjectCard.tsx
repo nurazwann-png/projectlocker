@@ -15,6 +15,7 @@ interface ProjectCardProps {
   onCardClick?: (project: Project) => void;
   onPin?: (id: string) => void;
   onThumbnailChange?: (id: string, url: string | null) => void;
+  onView?: (id: string) => void;
   index?: number;
   readOnly?: boolean;
 }
@@ -94,7 +95,7 @@ async function compressThumbnail(file: File): Promise<string> {
 }
 
 export default function ProjectCard({
-  project, onEdit, onDelete, onTagClick, activeTagFilter, onDuplicate, onCardClick, onPin, onThumbnailChange, index = 0, readOnly = false,
+  project, onEdit, onDelete, onTagClick, activeTagFilter, onDuplicate, onCardClick, onPin, onThumbnailChange, onView, index = 0, readOnly = false,
 }: ProjectCardProps) {
   const grad = projectGradient(project.name);
   const score = healthScore(project);

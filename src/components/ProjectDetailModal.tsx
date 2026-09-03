@@ -24,6 +24,7 @@ interface ProjectDetailModalProps {
   isOwner?: boolean;
   isAdmin?: boolean;
   showViewers?: boolean;
+  onView?: (projectId: string) => void;
   onOpen?: (projectId: string) => void;
 }
 
@@ -65,7 +66,7 @@ function NotesContent({ text }: { text: string }) {
 export default function ProjectDetailModal({
   project, onClose, onEdit, onNotesChange,
   onNotesLockChange, onNotesPinChange,
-  notesPin, readOnly = false, isOwner = false, isAdmin = false, showViewers = false, onOpen,
+  notesPin, readOnly = false, isOwner = false, isAdmin = false, showViewers = false, onView, onOpen,
 }: ProjectDetailModalProps) {
   const [notes, setNotes] = useState("");
   const [notesSaved, setNotesSaved] = useState(false);
@@ -280,6 +281,7 @@ export default function ProjectDetailModal({
             <div className="mb-6 flex flex-wrap gap-3">
               {liveUrl && (
                 <a href={liveUrl} target="_blank" rel="noopener noreferrer"
+                  onClick={() => onView?.(project.id)}
                   className="btn-gradient inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white transition-colors"
                 >
                   <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
@@ -291,6 +293,7 @@ export default function ProjectDetailModal({
               )}
               {!readOnly && repoUrl && (
                 <a href={repoUrl} target="_blank" rel="noopener noreferrer"
+                  onClick={() => onView?.(project.id)}
                   className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-colors"
                   style={{ background: "rgba(124,58,237,0.06)", color: "#5b5880", border: "1px solid rgba(124,58,237,0.15)" }}
                   onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#0d0b1e"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "rgba(124,58,237,0.3)"; }}
@@ -509,7 +512,7 @@ export default function ProjectDetailModal({
           {/* Comments */}
           <div className="mt-2">
             <div className="mb-0" style={{ height: 1, background: "rgba(124,58,237,0.08)" }} />
-            <CommentSection projectId={project.id} isOwner={isOwner} />
+            <CommentSection projectId={project.id} isOwner={isOwner} onCommentPosted={() => onView?.(project.id)} />
           </div>
         </div>
       </div>

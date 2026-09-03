@@ -81,15 +81,6 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
           updatedAt: (p.updatedAt as string) ?? "",
         })) : [];
         setProjects(mapped);
-
-        // Record a view for every project on this profile just by visiting the page.
-        // The API skips the owner's own visits server-side.
-        mapped.forEach((p) => {
-          fetch(`/api/public/projects/${p.id}/view`, {
-            method: "POST",
-            credentials: "include",
-          }).then(r => { if (!r.ok) console.error("view record failed", r.status, p.id); }).catch(console.error);
-        });
       } catch {
         setNotFound(true);
       } finally {
@@ -263,6 +254,9 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
         isOwner={!!user && user.id === profile.ownerId}
         isAdmin={!!profile.viewerIsAdmin}
         showViewers
+        onView={(projectId) => {
+          fetch(`/api/public/projects/${projectId}/view`, { method: "POST", credentials: "include" }).catch(() => {});
+        }}
       />
     </div>
   );
