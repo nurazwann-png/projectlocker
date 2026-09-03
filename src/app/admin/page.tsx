@@ -379,7 +379,7 @@ export default function AdminPage() {
   const isAuthenticated = (isLoaded && isSignedIn) || !!pinToken;
 
   return (
-    <div className="min-h-screen" style={{ background: "#f8f7ff" }}>
+    <div className="relative z-10 min-h-screen" style={{ background: "#f8f7ff" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&display=swap');`}</style>
 
       {/* Nav */}
