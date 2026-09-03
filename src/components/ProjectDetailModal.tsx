@@ -432,8 +432,8 @@ export default function ProjectDetailModal({
               ) : null}
             </div>
           )}
-          {/* Viewers — owner or admin */}
-          {(isOwner || isAdmin) && (
+          {/* Viewers — owner only */}
+          {isOwner && (
             <div className="mt-4">
               <div style={{ height: 1, background: "rgba(124,58,237,0.08)" }} />
               <button
