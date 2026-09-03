@@ -197,13 +197,13 @@ export default function ProjectDetailModal({
         }}
       >
         {/* Hero / thumbnail */}
-        <div className="relative flex-shrink-0" style={{ height: 220 }}>
+        <div className="relative flex-shrink-0" style={{ height: 260 }}>
           {project.thumbnail ? (
-            <img src={project.thumbnail} alt={project.name} className="absolute inset-0 h-full w-full object-cover" />
+            <img src={project.thumbnail} alt={project.name} className="absolute inset-0 h-full w-full object-cover object-top" />
           ) : (
             <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, #7c3aed, #db2777, #0ea5e9)" }} />
           )}
-          <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, transparent 30%, #ffffff 100%)" }} />
+          <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, transparent 40%, #ffffff 100%)" }} />
           <button
             onClick={onClose}
             className="absolute right-4 top-4 rounded-xl p-2 transition-colors"

@@ -161,7 +161,7 @@ export default function ProjectCard({
             className="absolute inset-0 w-full h-full"
             style={{
               objectFit: "cover",
-              objectPosition: "center",
+              objectPosition: "top",
               transition: "transform 0.4s ease",
             }}
           />
