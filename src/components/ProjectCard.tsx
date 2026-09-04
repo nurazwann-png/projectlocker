@@ -149,10 +149,10 @@ export default function ProjectCard({
         (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(124,58,237,0.12)";
       }}
     >
-      {/* Thumbnail area — fixed 16:9 aspect ratio */}
+      {/* Thumbnail area */}
       <div
         className="relative overflow-hidden"
-        style={{ background: grad, aspectRatio: "16/9" }}
+        style={{ background: grad, aspectRatio: "16/9", minHeight: 180 }}
       >
         {project.thumbnail && (
           <img
@@ -167,12 +167,12 @@ export default function ProjectCard({
           />
         )}
 
-        {/* Gradient overlay */}
+        {/* Gradient overlay — light top-only so image is unobscured */}
         <div
           className="absolute inset-0"
           style={{ background: project.thumbnail
-            ? "linear-gradient(to bottom, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.60) 100%)"
-            : "linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.35) 100%)"
+            ? "linear-gradient(to bottom, rgba(0,0,0,0.25) 0%, transparent 40%)"
+            : "linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.4) 100%)"
           }}
         />
 
@@ -266,47 +266,47 @@ export default function ProjectCard({
           </div>}
         </div>
 
-        {/* Project name + health ring */}
-        <div className="absolute bottom-0 left-0 right-0 px-4 pb-3 flex items-end justify-between gap-2" style={{ zIndex: 20 }}>
-          <h3
-            className="font-bold text-white leading-snug drop-shadow-sm line-clamp-2"
-            style={{
-              fontFamily: "'Syne', system-ui, sans-serif",
-              fontSize: project.name.length > 40 ? "0.95rem" : "1.125rem",
-            }}
-          >
-            {project.name}
-          </h3>
-          <div className="flex-shrink-0 relative" title={`Health: ${score}%`}>
-            <svg width={34} height={34} style={{ transform: "rotate(-90deg)" }}>
-              <circle cx={17} cy={17} r={R} fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth={3} />
-              <circle
-                cx={17} cy={17} r={R} fill="none"
-                stroke="#fff"
-                strokeWidth={3}
-                strokeDasharray={`${dash} ${CIRC}`}
-                strokeLinecap="round"
-                style={{ filter: `drop-shadow(0 0 3px ${hColor}88)` }}
-              />
-            </svg>
-            <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white">
-              {score}
-            </span>
-          </div>
-        </div>
 
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleThumbnailPick} />
       </div>
 
       {/* Card body */}
-      <div className="flex flex-col flex-1 px-6 pt-5 pb-6">
-        <p className="text-sm leading-relaxed line-clamp-2 mb-5" style={{ color: "#5b5880" }}>
+      <div className="flex flex-col flex-1 px-5 pt-4 pb-5">
+        {/* Title row */}
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <h3
+            className="font-bold leading-snug line-clamp-2 flex-1"
+            style={{
+              fontFamily: "'Syne', system-ui, sans-serif",
+              color: "#0d0b1e",
+              fontSize: project.name.length > 40 ? "0.9rem" : "1rem",
+            }}
+          >
+            {project.name}
+          </h3>
+          <div className="flex-shrink-0 relative mt-0.5" title={`Health: ${score}%`}>
+            <svg width={32} height={32} style={{ transform: "rotate(-90deg)" }}>
+              <circle cx={16} cy={16} r={R} fill="none" stroke="rgba(124,58,237,0.15)" strokeWidth={3} />
+              <circle
+                cx={16} cy={16} r={R} fill="none"
+                stroke={hColor}
+                strokeWidth={3}
+                strokeDasharray={`${dash} ${CIRC}`}
+                strokeLinecap="round"
+              />
+            </svg>
+            <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold" style={{ color: hColor }}>
+              {score}
+            </span>
+          </div>
+        </div>
+        <p className="text-sm leading-relaxed line-clamp-2 mb-4" style={{ color: "#5b5880" }}>
           {project.description || "No description provided."}
         </p>
 
         {/* Tech stack tags */}
         {project.techStack.length > 0 && (
-          <div className="mb-5 flex flex-wrap gap-2">
+          <div className="mb-4 flex flex-wrap gap-2">
             {project.techStack.slice(0, 5).map((tag) => (
               <button
                 key={tag}
