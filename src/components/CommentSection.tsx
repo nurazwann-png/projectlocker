@@ -167,26 +167,63 @@ interface CommentRowProps {
   projectId: string;
   onReplyPosted: (reply: Comment, parentId: string) => void;
   onAcknowledge: (commentId: string) => void;
+  onDelete: (commentId: string, parentId: string | null) => void;
+  onEdit: (commentId: string, newBody: string) => void;
   isOwner?: boolean;
   isReply?: boolean;
 }
 
-function CommentRow({ comment, projectId, onReplyPosted, onAcknowledge, isOwner = false, isReply = false, currentUserId }: CommentRowProps & { currentUserId?: string | null }) {
+function CommentRow({ comment, projectId, onReplyPosted, onAcknowledge, onDelete, onEdit, isOwner = false, isReply = false, currentUserId }: CommentRowProps & { currentUserId?: string | null }) {
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [repliesExpanded, setRepliesExpanded] = useState(false);
   const [acking, setAcking] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editBody, setEditBody] = useState(comment.body);
+  const [saving, setSaving] = useState(false);
   const replies = comment.replies ?? [];
+
+  const isAuthor = !!currentUserId && currentUserId === comment.authorId;
+  const canEdit = isAuthor;
+  const canDelete = isAuthor || isOwner;
 
   async function handleAcknowledge() {
     setAcking(true);
     try {
-      const res = await fetch(`/api/comments/${comment.id}/acknowledge`, {
-        method: "PATCH",
-        credentials: "include",
-      });
+      const res = await fetch(`/api/comments/${comment.id}/acknowledge`, { method: "PATCH", credentials: "include" });
       if (res.ok) onAcknowledge(comment.id);
     } finally {
       setAcking(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!confirm("Delete this comment?")) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/comments/${comment.id}`, { method: "DELETE", credentials: "include" });
+      if (res.ok) onDelete(comment.id, comment.parentId);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  async function handleEditSave() {
+    if (!editBody.trim() || editBody.trim() === comment.body) { setEditMode(false); return; }
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/comments/${comment.id}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: editBody.trim() }),
+      });
+      if (res.ok) {
+        onEdit(comment.id, editBody.trim());
+        setEditMode(false);
+      }
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -209,10 +246,38 @@ function CommentRow({ comment, projectId, onReplyPosted, onAcknowledge, isOwner 
               </span>
             )}
           </div>
-          <p className="leading-relaxed mt-0.5 break-words" style={{ color: "#5b5880", fontSize: isReply ? 11 : 12 }}>{comment.body}</p>
 
-          <div className="flex items-center gap-3 mt-1">
-            {!isReply && (
+          {editMode ? (
+            <div className="mt-1 space-y-1.5">
+              <textarea
+                value={editBody}
+                onChange={(e) => setEditBody(e.target.value)}
+                maxLength={500}
+                rows={2}
+                autoFocus
+                className="w-full resize-none rounded-lg px-3 py-1.5 text-xs outline-none"
+                style={{ background: "rgba(124,58,237,0.04)", border: "1px solid rgba(124,58,237,0.35)", color: "#0d0b1e", lineHeight: 1.6 }}
+              />
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleEditSave}
+                  disabled={saving || !editBody.trim()}
+                  className="rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all"
+                  style={{ background: "rgba(124,58,237,0.1)", color: "#7c3aed", border: "1px solid rgba(124,58,237,0.25)", opacity: saving ? 0.6 : 1 }}
+                >
+                  {saving ? "Saving…" : "Save"}
+                </button>
+                <button onClick={() => { setEditMode(false); setEditBody(comment.body); }} className="text-[11px]" style={{ color: "#9693b8" }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="leading-relaxed mt-0.5 break-words" style={{ color: "#5b5880", fontSize: isReply ? 11 : 12 }}>{comment.body}</p>
+          )}
+
+          <div className="flex items-center gap-3 mt-1 flex-wrap">
+            {!isReply && !editMode && (
               <button
                 onClick={() => setShowReplyForm((v) => !v)}
                 className="text-[11px] font-medium transition-colors"
@@ -223,8 +288,8 @@ function CommentRow({ comment, projectId, onReplyPosted, onAcknowledge, isOwner 
                 {showReplyForm ? "Cancel" : "↩ Reply"}
               </button>
             )}
-            {/* Acknowledge button — only for owner on top-level comments from OTHER people */}
-            {isOwner && !isReply && comment.authorId !== currentUserId && (
+            {/* Acknowledge — owner on other people's top-level comments */}
+            {isOwner && !isReply && !editMode && comment.authorId !== currentUserId && (
               <button
                 onClick={handleAcknowledge}
                 disabled={acking}
@@ -238,6 +303,33 @@ function CommentRow({ comment, projectId, onReplyPosted, onAcknowledge, isOwner 
                 title={comment.acknowledged ? "Mark as unacknowledged" : "Mark as noted / taken into consideration"}
               >
                 {comment.acknowledged ? "✓ Noted" : "Mark as noted"}
+              </button>
+            )}
+            {/* Edit — author only */}
+            {canEdit && !editMode && (
+              <button
+                onClick={() => setEditMode(true)}
+                className="text-[11px] transition-colors"
+                style={{ color: "#9693b8" }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#7c3aed"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#9693b8"; }}
+                title="Edit comment"
+              >
+                Edit
+              </button>
+            )}
+            {/* Delete — author or project owner */}
+            {canDelete && !editMode && (
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="text-[11px] transition-colors"
+                style={{ color: "#9693b8", opacity: deleting ? 0.5 : 1 }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#dc2626"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#9693b8"; }}
+                title="Delete comment"
+              >
+                {deleting ? "Deleting…" : "Delete"}
               </button>
             )}
           </div>
@@ -270,7 +362,18 @@ function CommentRow({ comment, projectId, onReplyPosted, onAcknowledge, isOwner 
           {repliesExpanded && (
             <>
               {replies.map((r) => (
-                <CommentRow key={r.id} comment={r} projectId={projectId} onReplyPosted={onReplyPosted} onAcknowledge={onAcknowledge} isOwner={isOwner} isReply />
+                <CommentRow
+                  key={r.id}
+                  comment={r}
+                  projectId={projectId}
+                  onReplyPosted={onReplyPosted}
+                  onAcknowledge={onAcknowledge}
+                  onDelete={onDelete}
+                  onEdit={onEdit}
+                  isOwner={isOwner}
+                  isReply
+                  currentUserId={currentUserId}
+                />
               ))}
               <button onClick={() => setRepliesExpanded(false)} className="text-[11px]" style={{ color: "#9693b8" }}>▴ Hide replies</button>
             </>
@@ -333,6 +436,36 @@ export default function CommentSection({ projectId, isOwner = false, onCommentPo
     );
   }
 
+  function handleDelete(commentId: string, parentId: string | null) {
+    if (parentId) {
+      // Remove reply from its parent
+      setTree((prev) =>
+        prev.map((c) =>
+          c.id === parentId
+            ? { ...c, replies: (c.replies ?? []).filter((r) => r.id !== commentId) }
+            : c
+        )
+      );
+    } else {
+      setTree((prev) => prev.filter((c) => c.id !== commentId));
+    }
+    setTotalCount((n) => n - 1);
+  }
+
+  function handleEdit(commentId: string, newBody: string) {
+    setTree((prev) =>
+      prev.map((c) => {
+        if (c.id === commentId) return { ...c, body: newBody };
+        return {
+          ...c,
+          replies: (c.replies ?? []).map((r) =>
+            r.id === commentId ? { ...r, body: newBody } : r
+          ),
+        };
+      })
+    );
+  }
+
   return (
     <div onClick={(e) => e.stopPropagation()} style={{ borderTop: "1px solid rgba(124,58,237,0.08)" }}>
       {/* Header */}
@@ -380,6 +513,8 @@ export default function CommentSection({ projectId, isOwner = false, onCommentPo
               projectId={projectId}
               onReplyPosted={handleReplyPosted}
               onAcknowledge={handleAcknowledge}
+              onDelete={handleDelete}
+              onEdit={handleEdit}
               isOwner={isOwner}
               currentUserId={currentUserId}
             />
