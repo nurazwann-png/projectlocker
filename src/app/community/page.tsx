@@ -195,14 +195,14 @@ export default function CommunityPage() {
       >
         <div className="flex items-center gap-3">
           <Link
-            href={isSignedIn ? "/dashboard" : "/"}
+            href="/"
             className="flex items-center gap-1.5 text-xs font-medium transition-colors"
             style={{ color: "rgba(200,190,255,0.7)" }}
           >
             <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clipRule="evenodd" />
             </svg>
-            {isSignedIn ? "My Dashboard" : "Home"}
+            {isSignedIn ? "My Dashboard" : "← Home"}
           </Link>
           <span style={{ color: "rgba(255,255,255,0.15)" }}>·</span>
           <span className="text-sm font-bold" style={{ color: "#ffffff", fontFamily: "'Syne', system-ui, sans-serif" }}>
