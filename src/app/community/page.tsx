@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import { useUser, SignInButton, SignUpButton } from "@clerk/nextjs";
 
 interface CommunityProfile {
   username: string;
@@ -40,17 +41,69 @@ const pageBg: import("react").CSSProperties = {
 };
 
 export default function CommunityPage() {
+  const { isSignedIn, isLoaded } = useUser();
   const [profiles, setProfiles] = useState<CommunityProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
 
+  // ── Access gate state ──
+  // unlocked=null → checking (signed-in flow), false → show gate, true → show community
+  const [unlocked, setUnlocked] = useState<boolean | null>(null);
+  const [sessionKey, setSessionKey] = useState(""); // held in memory only, cleared on refresh
+  const [codeInput, setCodeInput] = useState("");
+  const [codeError, setCodeError] = useState("");
+  const [verifying, setVerifying] = useState(false);
+
+  async function loadProfiles(key: string) {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/community", {
+        credentials: "include",
+        headers: { "x-community-key": key },
+      });
+      if (res.status === 401) { setUnlocked(false); return; }
+      const data = await res.json();
+      if (Array.isArray(data)) setProfiles(data);
+      setUnlocked(true);
+    } catch {}
+    finally { setLoading(false); }
+  }
+
+  // Signed-in users skip the gate using their Clerk session
   useEffect(() => {
-    fetch("/api/community")
-      .then((r) => r.json())
-      .then((data) => { if (Array.isArray(data)) setProfiles(data); })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+    if (!isLoaded) return;
+    if (isSignedIn) {
+      loadProfiles(""); // Clerk session cookie handles auth automatically
+    } else {
+      setUnlocked(false); // show gate immediately for guests
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, isSignedIn]);
+
+  async function handleVerify(e: React.FormEvent) {
+    e.preventDefault();
+    setVerifying(true);
+    setCodeError("");
+    try {
+      const res = await fetch("/api/public/community/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: codeInput }),
+      });
+      const { ok } = await res.json();
+      if (ok) {
+        setSessionKey(codeInput.trim().toUpperCase());
+        await loadProfiles(codeInput.trim().toUpperCase());
+      } else {
+        setCodeError("Incorrect access code. Please try again.");
+        setCodeInput("");
+      }
+    } catch {
+      setCodeError("Network error. Please try again.");
+    } finally {
+      setVerifying(false);
+    }
+  }
 
   const filtered = useMemo(() => {
     if (!query.trim()) return profiles;
@@ -62,6 +115,77 @@ export default function CommunityPage() {
     );
   }, [profiles, query]);
 
+  // ── Gate screen ──
+  if (unlocked === false) return (
+    <div style={{ ...pageBg, display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
+      <div style={{ width: "100%", maxWidth: 400, margin: "0 auto", padding: "0 24px" }}>
+        <div className="rounded-2xl p-8" style={{ background: "rgba(14,11,30,0.85)", backdropFilter: "blur(24px)", border: "1px solid rgba(124,58,237,0.3)", boxShadow: "0 24px 64px rgba(0,0,0,0.5)" }}>
+          {/* Logo */}
+          <div className="flex flex-col items-center mb-7">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/icon.jpg" alt="ProjectLocker" className="h-12 w-12 rounded-xl mb-3 object-cover" style={{ border: "2px solid rgba(124,58,237,0.4)" }} />
+            <h1 className="text-lg font-bold text-center" style={{ fontFamily: "'Syne', system-ui, sans-serif", color: "#ffffff", letterSpacing: "-0.02em" }}>ProjectLocker</h1>
+            <p className="text-xs font-semibold text-center mt-1 tracking-widest uppercase" style={{ color: "#a78bfa" }}>MoE Agentic AI EcoSystem</p>
+          </div>
+
+          {/* Lock icon */}
+          <div className="flex justify-center mb-5">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full" style={{ background: "rgba(124,58,237,0.12)", border: "1px solid rgba(124,58,237,0.3)" }}>
+              <svg className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor" style={{ color: "#a78bfa" }}>
+                <path fillRule="evenodd" d="M10 1a4.5 4.5 0 0 0-4.5 4.5V9H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-.5V5.5A4.5 4.5 0 0 0 10 1Zm3 8V5.5a3 3 0 1 0-6 0V9h6Z" clipRule="evenodd" />
+              </svg>
+            </div>
+          </div>
+
+          <p className="text-center text-sm mb-6" style={{ color: "rgba(200,190,255,0.7)", lineHeight: 1.6 }}>
+            This community is restricted.<br />Enter your access code to continue.
+          </p>
+
+          <form onSubmit={handleVerify} className="space-y-3">
+            <input
+              value={codeInput}
+              onChange={(e) => { setCodeInput(e.target.value); setCodeError(""); }}
+              placeholder="Access code"
+              autoFocus
+              className="w-full rounded-xl px-4 py-3 text-sm text-center font-bold tracking-widest outline-none transition-all"
+              style={{ background: "rgba(255,255,255,0.06)", border: `1px solid ${codeError ? "rgba(239,68,68,0.5)" : "rgba(124,58,237,0.35)"}`, color: "#ffffff", letterSpacing: "0.15em" }}
+              onFocus={(e) => { if (!codeError) e.currentTarget.style.borderColor = "rgba(124,58,237,0.7)"; }}
+              onBlur={(e) => { if (!codeError) e.currentTarget.style.borderColor = "rgba(124,58,237,0.35)"; }}
+            />
+            {codeError && <p className="text-xs text-center" style={{ color: "#f87171" }}>{codeError}</p>}
+            <button
+              type="submit"
+              disabled={verifying || !codeInput.trim()}
+              className="w-full rounded-xl py-3 text-sm font-bold transition-all"
+              style={{ background: "#7c3aed", color: "#fff", border: "none", cursor: verifying || !codeInput.trim() ? "not-allowed" : "pointer", opacity: verifying || !codeInput.trim() ? 0.6 : 1, fontFamily: "'Syne', system-ui, sans-serif", letterSpacing: "0.04em" }}
+              onMouseEnter={(e) => { if (!verifying && codeInput.trim()) (e.currentTarget as HTMLButtonElement).style.background = "#6d28d9"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#7c3aed"; }}
+            >
+              {verifying ? "Verifying…" : "Enter Community"}
+            </button>
+          </form>
+
+          <div className="mt-5 pt-4 border-t flex items-center justify-center gap-2" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+            <SignInButton mode="modal">
+              <button className="text-xs font-medium transition-colors" style={{ color: "#9693b8", background: "none", border: "none", cursor: "pointer" }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#a78bfa"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#9693b8"; }}>
+                Sign in with account instead →
+              </button>
+            </SignInButton>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── Loading check (null = still verifying cookie) ──
+  if (unlocked === null) return (
+    <div style={{ ...pageBg, display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
+      <div className="h-8 w-8 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: "rgba(124,58,237,0.4)", borderTopColor: "#7c3aed" }} />
+    </div>
+  );
+
   return (
     <div style={pageBg}>
       {/* Nav bar */}
@@ -71,23 +195,34 @@ export default function CommunityPage() {
       >
         <div className="flex items-center gap-3">
           <Link
-            href="/"
+            href={isSignedIn ? "/dashboard" : "/"}
             className="flex items-center gap-1.5 text-xs font-medium transition-colors"
             style={{ color: "rgba(200,190,255,0.7)" }}
           >
             <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clipRule="evenodd" />
             </svg>
-            My Dashboard
+            {isSignedIn ? "My Dashboard" : "Home"}
           </Link>
           <span style={{ color: "rgba(255,255,255,0.15)" }}>·</span>
           <span className="text-sm font-bold" style={{ color: "#ffffff", fontFamily: "'Syne', system-ui, sans-serif" }}>
             Community
           </span>
         </div>
-        <span className="text-xs" style={{ color: "rgba(200,190,255,0.5)" }}>
-          {loading ? "…" : `${profiles.length} member${profiles.length !== 1 ? "s" : ""}`}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs" style={{ color: "rgba(200,190,255,0.5)" }}>
+            {loading ? "…" : `${profiles.length} member${profiles.length !== 1 ? "s" : ""}`}
+          </span>
+          {isLoaded && !isSignedIn && (
+            <SignInButton mode="modal">
+              <button className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-all" style={{ background: "#7c3aed", color: "#fff", border: "none", cursor: "pointer", fontFamily: "'Syne', system-ui, sans-serif" }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#6d28d9"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#7c3aed"; }}>
+                Sign in
+              </button>
+            </SignInButton>
+          )}
+        </div>
       </div>
 
       {/* Hero */}
@@ -104,8 +239,8 @@ export default function CommunityPage() {
         <h1 className="text-4xl font-bold mb-3" style={{ color: "#ffffff", fontFamily: "'Syne', system-ui, sans-serif", textShadow: "0 2px 20px rgba(124,58,237,0.4)" }}>
           Meet the Community
         </h1>
-        <p className="text-sm max-w-md mx-auto" style={{ color: "rgba(200,190,255,0.65)" }}>
-          Explore portfolios from everyone building on ProjectLocker.
+        <p className="text-xl font-bold max-w-md mx-auto tracking-wide" style={{ fontFamily: "'Syne', system-ui, sans-serif", color: "#ffffff", textShadow: "0 0 24px rgba(124,58,237,0.7), 0 2px 8px rgba(0,0,0,0.4)", letterSpacing: "0.04em" }}>
+          MoE Agentic AI EcoSystem
         </p>
       </div>
 

@@ -8,6 +8,7 @@ const isPublicRoute = createRouteMatcher([
   "/u/(.*)",
   "/community(.*)",
   "/api/public/(.*)",
+  "/api/community",
   "/api/admin/(.*)",
   "/admin",
   // PWA static assets — must be publicly accessible for install to work

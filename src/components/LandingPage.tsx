@@ -80,12 +80,20 @@ export default function LandingPage() {
 
       {/* Nav */}
       <nav className="sticky top-0 z-50 flex items-center justify-between px-6 md:px-16" style={{ height: 60, background: "rgba(255,255,255,0.9)", backdropFilter: "blur(12px)", borderBottom: "1px solid #ede9fe" }}>
-        <div className="flex items-center gap-2" style={{ ...syne, fontWeight: 800, fontSize: "1.05rem", color: "#0d0b1e", letterSpacing: "-0.02em" }}>
+        <div className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/icon.jpg" alt="ProjectLocker" className="h-7 w-7 flex-shrink-0 rounded-lg object-cover" style={{ border: "2px solid #ede9fe" }} />
-          ProjectLocker
+          <div className="flex flex-col leading-none">
+            <span style={{ ...syne, fontWeight: 800, fontSize: "1.05rem", color: "#0d0b1e", letterSpacing: "-0.02em" }}>ProjectLocker</span>
+            <span style={{ ...syne, fontWeight: 600, fontSize: "0.6rem", color: "#7c3aed", letterSpacing: "0.06em", textTransform: "uppercase", marginTop: 2 }}>MoE Agentic AI EcoSystem</span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
+          <a href="/community" className="rounded-lg px-3 py-2 text-sm font-semibold flex items-center gap-1.5" style={{ ...syne, color: "#9693b8", background: "transparent", textDecoration: "none" }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#7c3aed"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#9693b8"; }}>
+            Community
+          </a>
           <a href="/admin" className="rounded-lg px-3 py-2 text-sm font-semibold flex items-center gap-1.5" style={{ ...syne, color: "#9693b8", background: "transparent", textDecoration: "none" }}
             onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#7c3aed"; }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#9693b8"; }}>
@@ -121,9 +129,19 @@ export default function LandingPage() {
                 documented and shared.
               </span>
             </h1>
-            <p style={{ fontSize: "1.1rem", color: "#6b6894", lineHeight: 1.75, maxWidth: "44ch", marginBottom: "2.25rem" }}>
+            <p style={{ fontSize: "1.1rem", color: "#6b6894", lineHeight: 1.75, maxWidth: "44ch", marginBottom: "1rem" }}>
               Deploy. Log. Showcase. ProjectLocker turns your deployment history into a living portfolio that grows with every release.
             </p>
+            <div className="mb-8 rounded-xl px-4 py-3" style={{ background: "rgba(124,58,237,0.06)", border: "1px solid rgba(124,58,237,0.18)" }}>
+              <div className="flex items-center gap-2 mb-1">
+                <span style={{ ...syne, fontWeight: 700, fontSize: "0.72rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#7c3aed" }}>MoE Agentic AI EcoSystem</span>
+                <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: "#7c3aed" }} />
+                <span style={{ fontSize: "0.7rem", color: "#9693b8", fontWeight: 500 }}>Ministry of Education Malaysia</span>
+              </div>
+              <p style={{ fontSize: "0.85rem", color: "#6b6894", lineHeight: 1.65, margin: 0 }}>
+                An AI-powered ecosystem built for Malaysia&apos;s Ministry of Education — enabling educators and students to document, showcase, and collaborate on AI-driven projects under a unified national platform.
+              </p>
+            </div>
             <div className="flex flex-wrap items-center gap-3">
               <SignUpButton mode="modal">
                 <Btn primary>Get started free →</Btn>
@@ -131,6 +149,14 @@ export default function LandingPage() {
               <SignInButton mode="modal">
                 <button style={{ ...syne, fontSize: "0.9rem", fontWeight: 600, color: "#9693b8", background: "transparent", border: "none", cursor: "pointer" }}>Already have an account →</button>
               </SignInButton>
+              <a href="/community" style={{ ...syne, fontSize: "0.9rem", fontWeight: 600, color: "#7c3aed", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#6d28d9"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#7c3aed"; }}>
+                Browse as guest
+                <svg style={{ width: 14, height: 14 }} viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M3 10a.75.75 0 0 1 .75-.75h10.638L10.23 5.29a.75.75 0 1 1 1.04-1.08l5.5 5.25a.75.75 0 0 1 0 1.08l-5.5 5.25a.75.75 0 1 1-1.04-1.08l4.158-3.96H3.75A.75.75 0 0 1 3 10Z" clipRule="evenodd" />
+                </svg>
+              </a>
             </div>
           </div>
           <div className="hidden items-center justify-center md:flex">
