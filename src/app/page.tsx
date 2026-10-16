@@ -15,6 +15,7 @@ import ProfileHeader from "@/components/ProfileHeader";
 import ActivityHeatmap from "@/components/ActivityHeatmap";
 import TagCloud from "@/components/TagCloud";
 import TimelineView from "@/components/TimelineView";
+import CopyrightFooter from "@/components/CopyrightFooter";
 
 export default function DashboardPage() {
   const { isSignedIn, isLoaded } = useAuth();
@@ -768,6 +769,9 @@ export default function DashboardPage() {
           </button>
         </div>
       )}
+
+      {/* Copyright Footer */}
+      <CopyrightFooter />
 
       {/* Undo delete toast */}
       {undoToast && (

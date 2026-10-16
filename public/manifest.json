@@ -1,7 +1,7 @@
 {
-  "name": "ProjectLocker",
-  "short_name": "ProjectLocker",
-  "description": "Your private vault for tracking and managing deployed projects.",
+  "name": "PRESTIJ 4 MOE Hub",
+  "short_name": "PRESTIJ Hub",
+  "description": "PRESTIJ Cohort 4, Ministry of Education — Project Locker platform.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

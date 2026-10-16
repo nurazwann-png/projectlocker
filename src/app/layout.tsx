@@ -4,13 +4,13 @@ import "./globals.css";
 import SwRegister from "./sw-register";
 
 export const metadata: Metadata = {
-  title: "ProjectLocker",
-  description: "Your private vault for tracking and managing deployed projects.",
+  title: "PRESTIJ 4 MOE Hub",
+  description: "PRESTIJ Cohort 4, Ministry of Education — Project Locker platform.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "ProjectLocker",
+    title: "PRESTIJ 4 MOE Hub",
     startupImage: "/icon.jpg",
   },
   icons: {

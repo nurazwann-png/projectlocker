@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useUser, SignInButton, SignUpButton } from "@clerk/nextjs";
+import CopyrightFooter from "@/components/CopyrightFooter";
 
 interface CommunityProfile {
   username: string;
@@ -46,10 +47,12 @@ export default function CommunityPage() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
 
+  const SESSION_KEY_STORE = "prestij_community_key";
+
   // ── Access gate state ──
-  // unlocked=null → checking (signed-in flow), false → show gate, true → show community
+  // unlocked=null → checking, false → show gate, true → show community
   const [unlocked, setUnlocked] = useState<boolean | null>(null);
-  const [sessionKey, setSessionKey] = useState(""); // held in memory only, cleared on refresh
+  const [sessionKey, setSessionKey] = useState("");
   const [codeInput, setCodeInput] = useState("");
   const [codeError, setCodeError] = useState("");
   const [verifying, setVerifying] = useState(false);
@@ -69,13 +72,19 @@ export default function CommunityPage() {
     finally { setLoading(false); }
   }
 
-  // Signed-in users skip the gate using their Clerk session
+  // Signed-in users skip the gate; guests check sessionStorage for saved key
   useEffect(() => {
     if (!isLoaded) return;
     if (isSignedIn) {
-      loadProfiles(""); // Clerk session cookie handles auth automatically
+      loadProfiles("");
     } else {
-      setUnlocked(false); // show gate immediately for guests
+      const saved = sessionStorage.getItem(SESSION_KEY_STORE);
+      if (saved) {
+        setSessionKey(saved);
+        loadProfiles(saved);
+      } else {
+        setUnlocked(false);
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, isSignedIn]);
@@ -92,8 +101,10 @@ export default function CommunityPage() {
       });
       const { ok } = await res.json();
       if (ok) {
-        setSessionKey(codeInput.trim().toUpperCase());
-        await loadProfiles(codeInput.trim().toUpperCase());
+        const key = codeInput.trim().toUpperCase();
+        sessionStorage.setItem(SESSION_KEY_STORE, key);
+        setSessionKey(key);
+        await loadProfiles(key);
       } else {
         setCodeError("Incorrect access code. Please try again.");
         setCodeInput("");
@@ -123,9 +134,9 @@ export default function CommunityPage() {
           {/* Logo */}
           <div className="flex flex-col items-center mb-7">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/icon.jpg" alt="ProjectLocker" className="h-12 w-12 rounded-xl mb-3 object-cover" style={{ border: "2px solid rgba(124,58,237,0.4)" }} />
-            <h1 className="text-lg font-bold text-center" style={{ fontFamily: "'Syne', system-ui, sans-serif", color: "#ffffff", letterSpacing: "-0.02em" }}>ProjectLocker</h1>
-            <p className="text-xs font-semibold text-center mt-1 tracking-widest uppercase" style={{ color: "#a78bfa" }}>MoE Agentic AI EcoSystem</p>
+            <img src="/icon.jpg" alt="PRESTIJ 4 MOE Hub" className="h-12 w-12 rounded-xl mb-3 object-cover" style={{ border: "2px solid rgba(124,58,237,0.4)" }} />
+            <h1 className="text-lg font-bold text-center" style={{ fontFamily: "'Syne', system-ui, sans-serif", color: "#ffffff", letterSpacing: "-0.02em" }}>PRESTIJ 4 MOE Hub</h1>
+            <p className="text-xs font-semibold text-center mt-1 tracking-widest uppercase" style={{ color: "#a78bfa" }}>Ministry of Education Malaysia</p>
           </div>
 
           {/* Lock icon */}
@@ -360,6 +371,8 @@ export default function CommunityPage() {
           </div>
         )}
       </div>
+
+      <CopyrightFooter dark />
     </div>
   );
 }

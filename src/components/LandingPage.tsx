@@ -2,6 +2,7 @@
 
 import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
+import CopyrightFooter from "@/components/CopyrightFooter";
 
 const PROJECTS = [
   { label: "🚀", title: "Your Project", desc: "Log your deployed projects with status, tech stack, and deployment dates.", tags: ["React", "Node.js", "PostgreSQL"], from: "#7c3aed", to: "#4f46e5" },
@@ -82,10 +83,10 @@ export default function LandingPage() {
       <nav className="sticky top-0 z-50 flex items-center justify-between px-6 md:px-16" style={{ height: 60, background: "rgba(255,255,255,0.9)", backdropFilter: "blur(12px)", borderBottom: "1px solid #ede9fe" }}>
         <div className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/icon.jpg" alt="ProjectLocker" className="h-7 w-7 flex-shrink-0 rounded-lg object-cover" style={{ border: "2px solid #ede9fe" }} />
+          <img src="/icon.jpg" alt="PRESTIJ 4 MOE Hub" className="h-7 w-7 flex-shrink-0 rounded-lg object-cover" style={{ border: "2px solid #ede9fe" }} />
           <div className="flex flex-col leading-none">
-            <span style={{ ...syne, fontWeight: 800, fontSize: "1.05rem", color: "#0d0b1e", letterSpacing: "-0.02em" }}>ProjectLocker</span>
-            <span style={{ ...syne, fontWeight: 600, fontSize: "0.6rem", color: "#7c3aed", letterSpacing: "0.06em", textTransform: "uppercase", marginTop: 2 }}>MoE Agentic AI EcoSystem</span>
+            <span style={{ ...syne, fontWeight: 800, fontSize: "1.05rem", color: "#0d0b1e", letterSpacing: "-0.02em" }}>PRESTIJ 4 MOE Hub</span>
+            <span style={{ ...syne, fontWeight: 600, fontSize: "0.6rem", color: "#7c3aed", letterSpacing: "0.06em", textTransform: "uppercase", marginTop: 2 }}>Ministry of Education Malaysia</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -130,7 +131,7 @@ export default function LandingPage() {
               </span>
             </h1>
             <p style={{ fontSize: "1.1rem", color: "#6b6894", lineHeight: 1.75, maxWidth: "44ch", marginBottom: "1rem" }}>
-              Deploy. Log. Showcase. ProjectLocker turns your deployment history into a living portfolio that grows with every release.
+              Deploy. Log. Showcase. PRESTIJ 4 MOE Hub turns your deployment history into a living portfolio that grows with every release.
             </p>
             <div className="mb-8 rounded-xl px-4 py-3" style={{ background: "rgba(124,58,237,0.06)", border: "1px solid rgba(124,58,237,0.18)" }}>
               <div className="flex items-center gap-2 mb-1">
@@ -207,10 +208,7 @@ export default function LandingPage() {
       </div>
 
       {/* Footer */}
-      <footer className="flex flex-wrap items-center justify-between gap-4 border-t px-6 py-5 lg:px-16" style={{ borderColor: "#ede9fe" }}>
-        <span style={{ ...syne, fontWeight: 700, fontSize: "0.875rem", color: "#9693b8" }}>ProjectLocker</span>
-        <p style={{ fontSize: "0.78rem", color: "#9693b8" }}>Track what you build. Share what you ship.</p>
-      </footer>
+      <CopyrightFooter />
     </div>
   );
 }
