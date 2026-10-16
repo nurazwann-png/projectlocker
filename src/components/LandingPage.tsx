@@ -90,7 +90,7 @@ export default function LandingPage() {
           </div>
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
-          <a href="/community" className="hidden sm:flex rounded-lg px-3 py-2 text-sm font-semibold items-center gap-1.5" style={{ ...syne, color: "#9693b8", background: "transparent", textDecoration: "none" }}
+          <a href="/community" className="flex rounded-lg px-2 py-2 text-xs sm:text-sm sm:px-3 font-semibold items-center gap-1.5" style={{ ...syne, color: "#9693b8", background: "transparent", textDecoration: "none" }}
             onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#7c3aed"; }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#9693b8"; }}>
             Community
