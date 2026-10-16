@@ -151,14 +151,6 @@ export default function LandingPage() {
               <SignInButton mode="modal">
                 <button style={{ ...syne, fontSize: "0.9rem", fontWeight: 600, color: "#9693b8", background: "transparent", border: "none", cursor: "pointer" }}>Already have an account →</button>
               </SignInButton>
-              <a href="/community" style={{ ...syne, fontSize: "0.9rem", fontWeight: 600, color: "#7c3aed", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#6d28d9"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#7c3aed"; }}>
-                Browse as guest
-                <svg style={{ width: 14, height: 14 }} viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M3 10a.75.75 0 0 1 .75-.75h10.638L10.23 5.29a.75.75 0 1 1 1.04-1.08l5.5 5.25a.75.75 0 0 1 0 1.08l-5.5 5.25a.75.75 0 1 1-1.04-1.08l4.158-3.96H3.75A.75.75 0 0 1 3 10Z" clipRule="evenodd" />
-                </svg>
-              </a>
             </div>
           </div>
           <div className="hidden items-center justify-center md:flex">
