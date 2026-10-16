@@ -80,22 +80,22 @@ export default function LandingPage() {
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap');`}</style>
 
       {/* Nav */}
-      <nav className="sticky top-0 z-50 flex items-center justify-between px-6 md:px-16" style={{ height: 60, background: "rgba(255,255,255,0.9)", backdropFilter: "blur(12px)", borderBottom: "1px solid #ede9fe" }}>
-        <div className="flex items-center gap-3">
+      <nav className="sticky top-0 z-50 flex items-center justify-between px-4 md:px-16" style={{ height: 60, background: "rgba(255,255,255,0.9)", backdropFilter: "blur(12px)", borderBottom: "1px solid #ede9fe" }}>
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/icon.jpg" alt="PRESTIJ 4 MOE Hub" className="h-7 w-7 flex-shrink-0 rounded-lg object-cover" style={{ border: "2px solid #ede9fe" }} />
-          <div className="flex flex-col leading-none">
-            <span style={{ ...syne, fontWeight: 800, fontSize: "1.05rem", color: "#0d0b1e", letterSpacing: "-0.02em" }}>PRESTIJ 4 MOE Hub</span>
-            <span style={{ ...syne, fontWeight: 600, fontSize: "0.6rem", color: "#7c3aed", letterSpacing: "0.06em", textTransform: "uppercase", marginTop: 2 }}>Ministry of Education Malaysia</span>
+          <div className="flex flex-col leading-none min-w-0">
+            <span style={{ ...syne, fontWeight: 800, fontSize: "clamp(0.8rem, 3vw, 1.05rem)", color: "#0d0b1e", letterSpacing: "-0.02em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>PRESTIJ 4 MOE Hub</span>
+            <span className="hidden sm:block" style={{ ...syne, fontWeight: 600, fontSize: "0.6rem", color: "#7c3aed", letterSpacing: "0.06em", textTransform: "uppercase", marginTop: 2 }}>Ministry of Education Malaysia</span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <a href="/community" className="rounded-lg px-3 py-2 text-sm font-semibold flex items-center gap-1.5" style={{ ...syne, color: "#9693b8", background: "transparent", textDecoration: "none" }}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <a href="/community" className="hidden sm:flex rounded-lg px-3 py-2 text-sm font-semibold items-center gap-1.5" style={{ ...syne, color: "#9693b8", background: "transparent", textDecoration: "none" }}
             onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#7c3aed"; }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#9693b8"; }}>
             Community
           </a>
-          <a href="/admin" className="rounded-lg px-3 py-2 text-sm font-semibold flex items-center gap-1.5" style={{ ...syne, color: "#9693b8", background: "transparent", textDecoration: "none" }}
+          <a href="/admin" className="hidden md:flex rounded-lg px-3 py-2 text-sm font-semibold items-center gap-1.5" style={{ ...syne, color: "#9693b8", background: "transparent", textDecoration: "none" }}
             onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#7c3aed"; }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#9693b8"; }}>
             <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
@@ -104,13 +104,14 @@ export default function LandingPage() {
             Admin
           </a>
           <SignInButton mode="modal">
-            <button className="rounded-lg px-4 py-2 text-sm font-semibold" style={{ ...syne, color: "#6d28d9", background: "transparent", border: "none", cursor: "pointer" }}>Sign in</button>
+            <button className="rounded-lg px-3 py-2 text-sm font-semibold" style={{ ...syne, color: "#6d28d9", background: "transparent", border: "none", cursor: "pointer" }}>Sign in</button>
           </SignInButton>
           <SignUpButton mode="modal">
-            <button className="rounded-lg px-4 py-2 text-sm font-bold" style={{ ...syne, background: "#7c3aed", color: "#fff", border: "none", cursor: "pointer", borderRadius: 8 }}
+            <button className="rounded-lg px-3 py-2 text-sm font-bold" style={{ ...syne, background: "#7c3aed", color: "#fff", border: "none", cursor: "pointer", borderRadius: 8 }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#6d28d9"; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#7c3aed"; }}>
-              Get started
+              <span className="hidden sm:inline">Get started</span>
+              <span className="sm:hidden">Start</span>
             </button>
           </SignUpButton>
         </div>
